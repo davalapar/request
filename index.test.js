@@ -25,12 +25,12 @@ const request = require('./index');
     // dest: './a/b/test.jpg',
 
     // telegram request query
-    // url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
-    // query: { chat_id: -1001471087738, text: 'request query' },
+    url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
+    query: { chat_id: -1001471087738, text: 'request query' },
 
     // telegram request body
-    url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
-    body: { chat_id: -1001471087738, text: 'request body' },
+    // url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
+    // body: { chat_id: -1001471087738, text: 'request body' },
   })
     .then((result) => {
       console.log({ result });

@@ -72,12 +72,14 @@ const request = (config) => new Promise((resolve, reject) => {
 
   let timeoutObject;
 
-  let pathname = url.destname;
+  let pathname = url.pathname;
   if (url.search !== '') {
     pathname += url.search;
   } else if (query !== undefined) {
     pathname += `?${query}`;
   }
+
+  // console.log({ url, pathname, body });
 
   const req = agent.request(
     {
