@@ -96,17 +96,11 @@ const request = (config) => new Promise((resolve, reject) => {
           }
           data += `; filename="${item.filename}"`;
         } else if (Buffer.isBuffer(item.data) === true) {
-          reject(new Error(`invalid form[${index}].filename`));
+          data += `; filename="${item.name}"`;
         }
 
         // CONTENT TYPE:
-        if (item.type !== undefined) {
-          if (typeof item.type !== 'string' || item.type === '') {
-            reject(new Error(`invalid form[${index}].type`));
-          } else {
-            data += `\r\ncontent-type: ${item.type}`;
-          }
-        } else if (item.filename !== undefined) {
+        if (item.filename !== undefined) {
           const type = mime.lookup(item.filename);
           if (type !== false) {
             data += `\r\ncontent-type: ${type}`;
@@ -117,12 +111,9 @@ const request = (config) => new Promise((resolve, reject) => {
 
         // DATA:
         data += '\r\n';
-        console.log('asd');
         if (item.data === undefined) {
-          console.log('asd2');
           reject(new Error(`invalid undefined form[${index}].data`));
         } else if (typeof item.data === 'string') {
-          console.log('asd3');
           data += `\r\n${item.data}`;
           if (index === config.form.length - 1) {
             data += `\r\n--${boundary}--`;
@@ -131,9 +122,7 @@ const request = (config) => new Promise((resolve, reject) => {
           headers['content-length'] += buffer.byteLength;
           return buffer;
         } else if (Buffer.isBuffer(item.data) === true) {
-          console.log('asd4');
           data += '\r\n';
-          console.log({ data });
           buffer = Buffer.concat([
             Buffer.from(data),
             item.data,
@@ -170,6 +159,7 @@ const request = (config) => new Promise((resolve, reject) => {
     pathname += `?${query}`;
   }
 
+  /*
   console.log({
     method,
     url,
@@ -178,6 +168,7 @@ const request = (config) => new Promise((resolve, reject) => {
     form,
     headers,
   });
+  */
 
   const req = agent.request(
     {

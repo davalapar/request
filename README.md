@@ -29,10 +29,19 @@ const request = require('@davalapar/request');
     // sets method to POST
     form: [
       {
-        name: '', // required string
-        filename: '', // optional string, required if data is buffer
-        type: '', // optional string
-        data: '', // required string or buffer
+
+        // required string
+        // name of field
+        name: '',
+
+        // optional string,
+        // recommended if data is buffer,
+        // helps in correct mime-type lookup
+        filename: '',
+
+        // required string or buffer
+        // the data itself
+        data: '',
       }
     ],
 

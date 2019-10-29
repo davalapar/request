@@ -39,7 +39,7 @@ const request = require('./index');
     form: [
       { name: 'chat_id', data: '-1001471087738' },
       // { name: 'text', data: 'request body, multipart/form-data' },
-      { name: 'photo', filename: 'photo', data: fs.readFileSync('./test.jpg') },
+      { name: 'photo', filename: 'photo.jpg', data: fs.readFileSync('./test.jpg') },
     ],
 
     timeout: 10000,
