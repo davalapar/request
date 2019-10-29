@@ -103,8 +103,6 @@ const request = (config) => new Promise((resolve, reject) => {
           }
         } else if (Buffer.isBuffer(item.data) === true) {
           data += '\r\nContent-Type: application/octet-stream';
-        } else if (typeof item.data === 'string') {
-          data += '\r\nContent-Type: plain/text';
         }
         data += '\r\n';
         if (item.data === undefined) {
