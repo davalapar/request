@@ -46,7 +46,7 @@ const request = require('./index');
         // type: '',
       },
     ],
-    timeout: 3000,
+    timeout: 10000,
   })
     .then((result) => {
       console.log({ result });

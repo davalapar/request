@@ -85,7 +85,7 @@ const request = (config) => new Promise((resolve, reject) => {
           if (typeof item.filename !== 'string' || item.filename === '') {
             reject(new Error(`invalid form[${index}].filename`));
           } else {
-            data += `\r\ncontent-disposition: form-data; name="${item.name}"; name="${item.filename}"`;
+            data += `content-disposition: form-data; name="${item.name}"; name="${item.filename}"`;
           }
         } else {
           data += `\r\ncontent-disposition: form-data; name="${item.name}"`;
