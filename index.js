@@ -73,7 +73,7 @@ const request = (config) => new Promise((resolve, reject) => {
       method = 'POST';
       boundary = crypto.randomBytes(16).toString('hex');
       headers['Content-Type'] = `multipart/form-data; boundary=${boundary}`;
-      headers['transfer-encoding'] = 'chunked';
+      headers['Transfer-Encoding'] = 'chunked';
       headers['Content-Length'] = 0;
       form = config.form.map((item, index) => {
         console.log(item, index);
