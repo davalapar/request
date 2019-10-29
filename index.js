@@ -45,13 +45,13 @@ const request = (config) => new Promise((resolve, reject) => {
     }
     query = qs.stringify(config.query);
   }
-  let dest;
-  if (config.dest !== undefined) {
-    if (typeof config.dest !== 'string') {
-      reject(new Error('invalid non-string config.dest'));
+  let destination;
+  if (config.destination !== undefined) {
+    if (typeof config.destination !== 'string') {
+      reject(new Error('invalid non-string config.destination'));
       return;
     }
-    dest = config.dest;
+    destination = config.destination;
   }
   const headers = {
     'accept-encoding': 'br, gzip, deflate',
@@ -168,6 +168,26 @@ const request = (config) => new Promise((resolve, reject) => {
     }
     timeout = config.timeout;
   }
+  let maxSize = Infinity;
+  if (config.maxSize !== undefined) {
+    if (typeof config.maxSize !== 'number') {
+      reject(new Error('invalid non-number config.maxSize'));
+      return;
+    }
+    if (Number.isNaN(config.maxSize) === true) {
+      reject(new Error('invalid NaN config.maxSize'));
+      return;
+    }
+    if (Number.isFinite(config.maxSize) === false) {
+      reject(new Error('invalid non-finite config.maxSize'));
+      return;
+    }
+    if (Math.floor(config.maxSize) !== config.maxSize) {
+      reject(new Error('invalid non-integer config.maxSize'));
+      return;
+    }
+    maxSize = config.maxSize;
+  }
 
   let timeoutObject;
 
@@ -199,12 +219,24 @@ const request = (config) => new Promise((resolve, reject) => {
       port: url.port,
     },
     (response) => {
-      // console.log('response ::');
+      if (timeout !== undefined) {
+        clearTimeout(timeoutObject);
+        timeoutObject = undefined;
+      }
       const cType = response.headers['content-type'] || '';
       const cEncoding = response.headers['content-encoding'] || '';
-      // const cLength = Number(response.headers['content-length']) || Infinity;
+      const cLength = Number(response.headers['content-length']) || Infinity;
+      if (Number.isFinite(cLength) === true && Number.isFinite(maxSize) === true) {
+        if (cLength > 1) {
+          req.abort();
+          response.removeAllListeners();
+          response.destroy();
+          reject(new Error(`RES_MAXSIZE_EXCEEDED_${maxSize}_BYTES`));
+          return;
+        }
+      }
       // console.log(response.statusCode);
-      console.log(response.headers);
+      // console.log(response.headers);
       if (response.statusCode !== 200 && cType.includes('application/json') === false) {
         req.abort();
         response.removeAllListeners();
@@ -212,26 +244,25 @@ const request = (config) => new Promise((resolve, reject) => {
         reject(new Error(`RES_UNEXPECTED_${response.statusCode}`));
         return;
       }
-      if (dest !== undefined) {
-        const dir = path.dirname(dest);
+      if (destination !== undefined) {
+        const dir = path.dirname(destination);
         if (fs.existsSync(dir) === false) {
           fs.mkdirSync(dir, { recursive: true });
         }
-        if (fs.existsSync(dest) === true) {
-          fs.unlinkSync(dest);
+        if (fs.existsSync(destination) === true) {
+          fs.unlinkSync(destination);
         }
-        const fws = fs.createWriteStream(dest, { flags: 'wx' });
+        const fws = fs.createWriteStream(destination, { flags: 'wx' });
         if (timeout !== undefined) {
-          clearTimeout(timeoutObject);
           timeoutObject = setTimeout(() => {
             req.abort();
             response.removeAllListeners();
             response.destroy();
             fws.close();
-            if (fs.existsSync(dest) === true) {
-              fs.unlinkSync(dest);
+            if (fs.existsSync(destination) === true) {
+              fs.unlinkSync(destination);
             }
-            reject(new Error(`RES_TIMEOUT_${timeout}`));
+            reject(new Error(`RES_TIMEOUT_${timeout}_MS`));
           }, timeout);
         }
         response.pipe(fws);
@@ -243,8 +274,8 @@ const request = (config) => new Promise((resolve, reject) => {
           response.removeAllListeners();
           response.destroy();
           fws.close();
-          if (fs.existsSync(dest) === true) {
-            fs.unlinkSync(dest);
+          if (fs.existsSync(destination) === true) {
+            fs.unlinkSync(destination);
           }
           reject(e);
         });
@@ -257,13 +288,12 @@ const request = (config) => new Promise((resolve, reject) => {
         return;
       }
       if (timeout !== undefined) {
-        clearTimeout(timeoutObject);
         timeoutObject = setTimeout(() => {
           // console.log('response :: timeout');
           req.abort();
           response.removeAllListeners();
           response.destroy();
-          reject(new Error(`RES_TIMEOUT_${timeout}`));
+          reject(new Error(`RES_TIMEOUT_${timeout}_MS`));
         }, timeout);
       }
       let stream;
@@ -316,7 +346,7 @@ const request = (config) => new Promise((resolve, reject) => {
   if (timeout !== undefined) {
     timeoutObject = setTimeout(() => {
       req.abort();
-      reject(new Error(`REQ_TIMEOUT_${timeout}`));
+      reject(new Error(`REQ_TIMEOUT_${timeout}_MS`));
     }, timeout);
   }
   req.on('error', (e) => {
@@ -325,18 +355,23 @@ const request = (config) => new Promise((resolve, reject) => {
     }
     reject(e);
   });
-  if (method === 'POST') {
-    if (body !== undefined) {
-      req.write(body);
-    }
-    if (form !== undefined) {
-      // form.forEach((item) => fs.appendFileSync('./dump.txt', item));
-      for (let i = 0, l = form.length; i < l; i += 1) {
-        req.write(form[i]);
+  try {
+    if (method === 'POST') {
+      if (body !== undefined) {
+        req.write(body);
+      }
+      if (form !== undefined) {
+        // form.forEach((item) => fs.appendFileSync('./dump.txt', item));
+        for (let i = 0, l = form.length; i < l; i += 1) {
+          req.write(form[i]);
+        }
       }
     }
+    req.end();
+  } catch (e) {
+    req.abort();
+    reject(e);
   }
-  req.end();
 });
 
 module.exports = request;

@@ -29,7 +29,7 @@ const request = require('./index');
 
     // text/plain
     // url: 'https://stackoverflow.com/robots.txt',
-    // dest: './a/b/test.jpg',
+    // destination: './a/b/test.jpg',
 
     // telegram request query
     // url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
@@ -53,9 +53,10 @@ const request = require('./index');
     url: 'https://en.wikipedia.org/wiki/Content_negotiation',
 
     timeout: 10000,
+    // maxSize: 1000,
   })
     .then((result) => {
-      console.log({ result });
+      // console.log({ result });
       // console.log(JSON.stringify(result, null, 2));
     })
     .catch((error) => {

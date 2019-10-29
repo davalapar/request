@@ -50,11 +50,16 @@ const request = require('@davalapar/request');
 
     // optional string, save destination path
     // if not set, response will be a buffer
-    dest: './dir/filename.ext',
+    destination: './dir/filename.ext',
 
     // optional number, timeout in ms
     // will abort request & destroy response
     timeout: 30000,
+
+    // optional number,
+    // max size in bytes
+    // must be an integer
+    maxSize: 1000,
   });
 })();
 ```
@@ -72,8 +77,8 @@ const request = require('@davalapar/request');
 - response
   - `Object` if header `content-type` includes `application/json`
   - `String` if header `content-type` includes `text/plain`or `text/html`
-  - `Buffer` if `config.dest` not set
-  - `undefined` if `config.dest` is set
+  - `Buffer` if `config.destination` not set
+  - `undefined` if `config.destination` is set
 
 #### License
 
