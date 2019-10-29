@@ -60,8 +60,8 @@ const request = (config) => new Promise((resolve, reject) => {
     } else {
       method = 'POST';
       body = JSON.stringify(config.body);
-      headers['Content-Type'] = 'application/json';
-      headers['Content-Length'] = body.length;
+      headers['content-type'] = 'application/json';
+      headers['content-length'] = body.length;
     }
   }
   let form;
@@ -72,9 +72,9 @@ const request = (config) => new Promise((resolve, reject) => {
     } else {
       method = 'POST';
       boundary = `--${crypto.randomBytes(16).toString('hex')}`;
-      headers['Content-Type'] = `multipart/form-data; boundary=${boundary}`;
-      headers['Transfer-Encoding'] = 'chunked';
-      headers['Content-Length'] = 0;
+      headers['content-type'] = `multipart/form-data; boundary=${boundary}`;
+      headers['transfer-encoding'] = 'chunked';
+      headers['content-length'] = 0;
       form = config.form.map((item, index) => {
         console.log(item, index);
         let buffer;
@@ -85,24 +85,24 @@ const request = (config) => new Promise((resolve, reject) => {
           if (typeof item.filename !== 'string' || item.filename === '') {
             reject(new Error(`invalid form[${index}].filename`));
           } else {
-            data += `\r\nContent-Disposition: form-data; name="${item.name}"; name="${item.filename}"`;
+            data += `\r\ncontent-disposition: form-data; name="${item.name}"; name="${item.filename}"`;
           }
         } else {
-          data += `\r\nContent-Disposition: form-data; name="${item.name}"`;
+          data += `\r\ncontent-disposition: form-data; name="${item.name}"`;
         }
         if (item.type !== undefined) {
           if (typeof item.type !== 'string' || item.type === '') {
             reject(new Error(`invalid form[${index}].type`));
           } else {
-            data += `\r\nContent-Type: ${item.type}`;
+            data += `\r\ncontent-type: ${item.type}`;
           }
         } else if (item.filename !== undefined) {
           const type = mime.lookup(item.filename);
           if (type !== false) {
-            data += `\r\nContent-Type: ${type}`;
+            data += `\r\ncontent-type: ${type}`;
           }
         } else if (Buffer.isBuffer(item.data) === true) {
-          data += '\r\nContent-Type: application/octet-stream';
+          data += '\r\ncontent-type: application/octet-stream';
         }
         data += '\r\n';
         if (item.data === undefined) {
@@ -111,20 +111,20 @@ const request = (config) => new Promise((resolve, reject) => {
           data += `\r\n${item.data}`;
           console.log(data);
           buffer = Buffer.from(data);
-          headers['Content-Length'] += buffer.byteLength;
+          headers['content-length'] += buffer.byteLength;
           return buffer;
         } else if (Buffer.isBuffer(item.data) === true) {
           buffer = Buffer.concat([Buffer.from(data), item.data]);
-          headers['Content-Length'] += buffer.byteLength;
+          headers['content-length'] += buffer.byteLength;
           return buffer;
         } else {
           reject(new Error(`invalid non-string non-buffer form[${index}].data`));
         }
         return undefined;
       });
-      const last = Buffer.from(`\r\n${boundary}--\r\n`);
+      const last = Buffer.from(`${boundary}--`);
       form.push(last);
-      headers['Content-Length'] += last.byteLength;
+      headers['content-length'] += last.byteLength;
     }
   }
   let timeout;
@@ -167,13 +167,14 @@ const request = (config) => new Promise((resolve, reject) => {
       port: url.port,
     },
     (res) => {
-      const cType = res.headers['Content-Type'];
-      const cLength = Number(res.headers['Content-Length']);
+      const cType = res.headers['content-type'] || '';
+      const cLength = Number(res.headers['content-length']) || 0;
       // if (Number.isNaN(cLength) === true) {
       //   reject(new Error('RES_CLENGTH_NAN'));
       // }
       console.log(res.statusCode);
       console.log(res.headers);
+      console.log({ cType });
       if (res.statusCode === 200) {
         if (dest === undefined) {
           if (timeout !== undefined) {
@@ -287,6 +288,7 @@ const request = (config) => new Promise((resolve, reject) => {
       req.write(body);
     }
     if (form !== undefined) {
+      form.forEach((item) => console.log(item.toString('utf8')));
       for (let i = 0, l = form.length; i < l; i += 1) {
         console.log(`writing form[${i}]`);
         req.write(form[i]);

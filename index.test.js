@@ -37,17 +37,16 @@ const request = require('./index');
     form: [
       {
         name: 'chat_id',
-        // filename: '',
-        // type: '',
         data: '-1001471087738',
       },
       {
         name: 'text',
+        data: 'request body, multipart/form-data',
         // filename: '',
         // type: '',
-        data: 'request body, multipart/form-data',
       },
     ],
+    timeout: 3000,
   })
     .then((result) => {
       console.log({ result });
