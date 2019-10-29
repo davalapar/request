@@ -25,12 +25,29 @@ const request = require('./index');
     // dest: './a/b/test.jpg',
 
     // telegram request query
-    url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
-    query: { chat_id: -1001471087738, text: 'request query' },
-
-    // telegram request body
     // url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
-    // body: { chat_id: -1001471087738, text: 'request body' },
+    // query: { chat_id: -1001471087738, text: 'request query' },
+
+    // telegram request body, application/json
+    // url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
+    // body: { chat_id: -1001471087738, text: 'request body, application/json' },
+
+    // telegram request body, multipart/form-data
+    url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
+    form: [
+      {
+        name: 'chat_id',
+        // filename: '',
+        // type: '',
+        data: '-1001471087738',
+      },
+      {
+        name: 'text',
+        // filename: '',
+        // type: '',
+        data: 'request body, multipart/form-data',
+      },
+    ],
   })
     .then((result) => {
       console.log({ result });

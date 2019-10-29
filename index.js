@@ -5,6 +5,10 @@ const path = require('path');
 const http = require('http');
 const https = require('https');
 const qs = require('querystring');
+const crypto = require('crypto');
+
+const mime = require('mime-types');
+
 
 const request = (config) => new Promise((resolve, reject) => {
   if (typeof config !== 'object' || config === null) {
@@ -44,17 +48,83 @@ const request = (config) => new Promise((resolve, reject) => {
       dest = config.dest;
     }
   }
-  let method = 'GET';
-  let body;
   const headers = {};
+  let method = 'GET';
+  if (config.body !== undefined && config.form !== undefined) {
+    reject(new Error('invalid non-undefined config.body and non-undefined config.form'));
+  }
+  let body;
   if (config.body !== undefined) {
     if (typeof config.body !== 'object' || config.body === null) {
       reject(new Error('invalid non-object config.body'));
     } else {
       method = 'POST';
       body = JSON.stringify(config.body);
-      headers['content-type'] = 'application/json';
-      headers['content-length'] = body.length;
+      headers['Content-Type'] = 'application/json';
+      headers['Content-Length'] = body.length;
+    }
+  }
+  let form;
+  let boundary;
+  if (config.form !== undefined) {
+    if (Array.isArray(config.form) === false) {
+      reject(new Error('invalid non-array config.form'));
+    } else {
+      method = 'POST';
+      boundary = `--${crypto.randomBytes(16).toString('hex')}`;
+      headers['Content-Type'] = `multipart/form-data; boundary=${boundary}`;
+      headers['Transfer-Encoding'] = 'chunked';
+      headers['Content-Length'] = 0;
+      form = config.form.map((item, index) => {
+        console.log(item, index);
+        let buffer;
+        let data = boundary;
+        if (item.name === undefined || typeof item.name !== 'string' || item.name === '') {
+          reject(new Error(`invalid form[${index}].name`));
+        } else if (item.filename !== undefined) {
+          if (typeof item.filename !== 'string' || item.filename === '') {
+            reject(new Error(`invalid form[${index}].filename`));
+          } else {
+            data += `\r\nContent-Disposition: form-data; name="${item.name}"; name="${item.filename}"`;
+          }
+        } else {
+          data += `\r\nContent-Disposition: form-data; name="${item.name}"`;
+        }
+        if (item.type !== undefined) {
+          if (typeof item.type !== 'string' || item.type === '') {
+            reject(new Error(`invalid form[${index}].type`));
+          } else {
+            data += `\r\nContent-Type: ${item.type}`;
+          }
+        } else if (item.filename !== undefined) {
+          const type = mime.lookup(item.filename);
+          if (type !== false) {
+            data += `\r\nContent-Type: ${type}`;
+          }
+        } else if (Buffer.isBuffer(item.data) === true) {
+          data += '\r\nContent-Type: application/octet-stream';
+        }
+        data += '\r\n';
+        if (item.data === undefined) {
+          reject(new Error(`invalid undefined form[${index}].data`));
+        } else if (typeof data === 'string') {
+          data += `\r\n${item.data}`;
+          console.log(data);
+          buffer = Buffer.from(data);
+          headers['Content-Length'] += buffer.byteLength;
+          return buffer;
+        } else if (Buffer.isBuffer(item.data) === true) {
+          buffer = Buffer.concat([Buffer.from(data), item.data]);
+          headers['Content-Length'] += buffer.byteLength;
+          return buffer;
+        } else {
+          reject(new Error(`invalid non-string non-buffer form[${index}].data`));
+        }
+        return undefined;
+      });
+      const last = Buffer.from(`\r\n${boundary}--\r\n`);
+      form.push(last);
+      headers['Content-Length'] += last.byteLength;
     }
   }
   let timeout;
@@ -79,7 +149,13 @@ const request = (config) => new Promise((resolve, reject) => {
     pathname += `?${query}`;
   }
 
-  // console.log({ url, pathname, body });
+  console.log({
+    url,
+    pathname,
+    body,
+    form,
+    headers,
+  });
 
   const req = agent.request(
     {
@@ -91,12 +167,14 @@ const request = (config) => new Promise((resolve, reject) => {
       port: url.port,
     },
     (res) => {
-      const cType = res.headers['content-type'];
-      const cLength = Number(res.headers['content-length']);
+      const cType = res.headers['Content-Type'];
+      const cLength = Number(res.headers['Content-Length']);
       // if (Number.isNaN(cLength) === true) {
       //   reject(new Error('RES_CLENGTH_NAN'));
       // }
-      if (res.statusCode === 200 || cType.includes('application/json') === true) {
+      console.log(res.statusCode);
+      console.log(res.headers);
+      if (res.statusCode === 200) {
         if (dest === undefined) {
           if (timeout !== undefined) {
             clearTimeout(timeoutObject);
@@ -205,7 +283,15 @@ const request = (config) => new Promise((resolve, reject) => {
     reject(e);
   });
   if (method === 'POST') {
-    req.write(body);
+    if (body !== undefined) {
+      req.write(body);
+    }
+    if (form !== undefined) {
+      for (let i = 0, l = form.length; i < l; i += 1) {
+        console.log(`writing form[${i}]`);
+        req.write(form[i]);
+      }
+    }
   }
   req.end();
 });
