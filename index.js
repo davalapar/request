@@ -53,7 +53,9 @@ const request = (config) => new Promise((resolve, reject) => {
     }
     dest = config.dest;
   }
-  const headers = {};
+  const headers = {
+    'accept-encoding': 'br, gzip, deflate',
+  };
   let method = 'GET';
   if (config.body !== undefined && config.form !== undefined) {
     reject(new Error('invalid non-undefined config.body and non-undefined config.form'));
@@ -202,7 +204,7 @@ const request = (config) => new Promise((resolve, reject) => {
       const cEncoding = response.headers['content-encoding'] || '';
       // const cLength = Number(response.headers['content-length']) || Infinity;
       // console.log(response.statusCode);
-      // console.log(response.headers);
+      console.log(response.headers);
       if (response.statusCode !== 200 && cType.includes('application/json') === false) {
         req.abort();
         response.removeAllListeners();

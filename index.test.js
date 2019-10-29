@@ -13,7 +13,7 @@ const request = require('./index');
     throw Error('/env/tgBotToken.txt does not exist.');
   }
   if (fs.existsSync('./env/test.jpg') === false) {
-    throw Error('/env/test.jpg does not exist.');
+    // throw Error('/env/test.jpg does not exist.');
   }
   const tgBotToken = fs.readFileSync('./env/tgBotToken.txt', 'utf8');
 
@@ -42,13 +42,15 @@ const request = require('./index');
 
     // telegram request body, multipart/form-data
     // url: 'https://postman-echo.com/post',
-    url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
+    // url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
     // url: `https://api.telegram.org/bot${tgBotToken}/sendPhoto`,
-    form: [
-      { name: 'chat_id', data: '-1001471087738' },
-      { name: 'text', data: 'request body, multipart/form-data' },
-      // { name: 'photo', filename: 'photo.jpg', data: fs.readFileSync('./env/test.jpg') },
-    ],
+    // form: [
+    // { name: 'chat_id', data: '-1001471087738' },
+    // { name: 'text', data: 'request body, multipart/form-data' },
+    // { name: 'photo', filename: 'photo.jpg', data: fs.readFileSync('./env/test.jpg') },
+    // ],
+
+    url: 'https://en.wikipedia.org/wiki/Content_negotiation',
 
     timeout: 10000,
   })
