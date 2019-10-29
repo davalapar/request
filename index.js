@@ -61,7 +61,7 @@ const request = (config) => new Promise((resolve, reject) => {
       method = 'POST';
       body = JSON.stringify(config.body);
       headers['content-type'] = 'application/json';
-      headers['content-length'] = body.length;
+      headers['content-length'] = body.length; // will produce error if body has non-ascii utf8
     }
   }
   let form;
