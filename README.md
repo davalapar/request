@@ -22,6 +22,20 @@ const request = require('@davalapar/request');
     // sets method to POST
     body: {},
 
+    // optional array, request form data,
+    // sets content-type to multipart/form-data
+    // transfer-encoding
+    // sets content-length
+    // sets method to POST
+    form: [
+      {
+        name: '', // required string
+        filename: '', // optional string
+        type: '', // optional string
+        data: '', // required string or buffer
+      }
+    ],
+
     // optional string, save destination path
     // if not set, response will be a buffer
     dest: './dir/filename.ext',

@@ -72,37 +72,40 @@ const request = (config) => new Promise((resolve, reject) => {
     } else {
       method = 'POST';
       boundary = crypto.randomBytes(16).toString('hex');
-      headers['Content-Type'] = `multipart/form-data; boundary=${boundary}`;
-      headers['Transfer-Encoding'] = 'chunked';
-      headers['Content-Length'] = 0;
+      headers['content-type'] = `multipart/form-data; boundary=${boundary}`;
+      headers['transfer-encoding'] = 'chunked';
+      headers['content-length'] = 0;
       form = config.form.map((item, index) => {
-        console.log(item, index);
         let buffer;
-        let data = `--${boundary}`;
+        let data = '';
+        if (index > 0) {
+          data += '\r\n';
+        }
+        data += `--${boundary}`;
         if (item.name === undefined || typeof item.name !== 'string' || item.name === '') {
           reject(new Error(`invalid form[${index}].name`));
         } else if (item.filename !== undefined) {
           if (typeof item.filename !== 'string' || item.filename === '') {
             reject(new Error(`invalid form[${index}].filename`));
           } else {
-            data += `Content-Disposition: form-data; name="${item.name}"; name="${item.filename}"`;
+            data += `content-disposition: form-data; name="${item.name}"; name="${item.filename}"`;
           }
         } else {
-          data += `\r\nContent-Disposition: form-data; name="${item.name}"`;
+          data += `\r\ncontent-disposition: form-data; name="${item.name}"`;
         }
         if (item.type !== undefined) {
           if (typeof item.type !== 'string' || item.type === '') {
             reject(new Error(`invalid form[${index}].type`));
           } else {
-            data += `\r\nContent-Type: ${item.type}`;
+            data += `\r\ncontent-type: ${item.type}`;
           }
         } else if (item.filename !== undefined) {
           const type = mime.lookup(item.filename);
           if (type !== false) {
-            data += `\r\nTontent-Cype: ${type}`;
+            data += `\r\ncontent-type: ${type}`;
           }
         } else if (Buffer.isBuffer(item.data) === true) {
-          data += '\r\nContent-Type: application/octet-stream';
+          data += '\r\ncontent-type: application/octet-stream';
         }
         data += '\r\n';
         if (item.data === undefined) {
@@ -112,13 +115,12 @@ const request = (config) => new Promise((resolve, reject) => {
           if (index === config.form.length - 1) {
             data += `\r\n--${boundary}--`;
           }
-          console.log(data);
           buffer = Buffer.from(data);
-          headers['Content-Length'] += buffer.byteLength;
+          headers['content-length'] += buffer.byteLength;
           return buffer;
         } else if (Buffer.isBuffer(item.data) === true) {
           buffer = Buffer.concat([Buffer.from(data), item.data]);
-          headers['Content-Length'] += buffer.byteLength;
+          headers['content-length'] += buffer.byteLength;
           return buffer;
         } else {
           reject(new Error(`invalid non-string non-buffer form[${index}].data`));
@@ -149,6 +151,7 @@ const request = (config) => new Promise((resolve, reject) => {
     pathname += `?${query}`;
   }
 
+  /*
   console.log({
     method,
     url,
@@ -157,6 +160,7 @@ const request = (config) => new Promise((resolve, reject) => {
     form,
     headers,
   });
+  */
 
   const req = agent.request(
     {
@@ -168,14 +172,11 @@ const request = (config) => new Promise((resolve, reject) => {
       port: url.port,
     },
     (res) => {
-      console.log('res ::');
+      // console.log('res ::');
       const cType = res.headers['content-type'] || '';
-      const cLength = Number(res.headers['content-length']) || 0;
-      // if (Number.isNaN(cLength) === true) {
-      //   reject(new Error('RES_CLENGTH_NAN'));
-      // }
-      console.log(res.statusCode);
-      console.log(res.headers);
+      const cLength = Number(res.headers['content-length']) || Infinity;
+      // console.log(res.statusCode);
+      // console.log(res.headers);
       if (res.statusCode === 200 || cType.includes('application/json') === true) {
         if (dest === undefined) {
           if (timeout !== undefined) {
@@ -204,7 +205,7 @@ const request = (config) => new Promise((resolve, reject) => {
               } catch (e) {
                 reject(e);
               }
-            } else if (cType.includes('text/plain') === true) {
+            } else if (cType.includes('text/plain') === true || cType.includes('text/html') === true) {
               try {
                 resolve(buffer.toString('utf8'));
               } catch (e) {
@@ -289,9 +290,9 @@ const request = (config) => new Promise((resolve, reject) => {
       req.write(body);
     }
     if (form !== undefined) {
-      console.log('---------');
-      form.forEach((item) => console.log(item.toString('utf8')));
-      console.log('---------');
+      // console.log('---------');
+      // form.forEach((item) => console.log(item.toString('utf8')));
+      // console.log('---------');
       for (let i = 0, l = form.length; i < l; i += 1) {
         req.write(form[i]);
       }

@@ -33,6 +33,7 @@ const request = require('./index');
     // body: { chat_id: -1001471087738, text: 'request body, application/json' },
 
     // telegram request body, multipart/form-data
+    // url: 'https://postman-echo.com/post',
     url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
     form: [
       {
