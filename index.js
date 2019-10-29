@@ -6,6 +6,7 @@ const http = require('http');
 const https = require('https');
 const qs = require('querystring');
 const crypto = require('crypto');
+const zlib = require('zlib');
 
 const mime = require('mime-types');
 
@@ -195,115 +196,128 @@ const request = (config) => new Promise((resolve, reject) => {
       path: pathname,
       port: url.port,
     },
-    (res) => {
-      // console.log('res ::');
-      const cType = res.headers['content-type'] || '';
-      const cLength = Number(res.headers['content-length']) || Infinity;
-      // console.log(res.statusCode);
-      // console.log(res.headers);
-      if (res.statusCode === 200 || cType.includes('application/json') === true) {
-        if (dest === undefined) {
-          if (timeout !== undefined) {
-            clearTimeout(timeoutObject);
-            timeoutObject = setTimeout(() => {
-              // console.log('res :: timeout');
-              req.abort();
-              res.removeAllListeners();
-              res.destroy();
-              reject(new Error(`RES_TIMEOUT_${timeout}`));
-            }, timeout);
-          }
-          let buffer = Buffer.alloc(0);
-          res.on('data', (chunk) => {
-            // console.log('res :: data', chunk.byteLength, buffer.byteLength, cLength, (buffer.byteLength / cLength) * 100);
-            buffer = Buffer.concat([buffer, chunk]);
-          });
-          res.on('end', () => {
-            // console.log('res :: end');
-            if (timeout !== undefined) {
-              clearTimeout(timeoutObject);
-            }
-            if (cType.includes('application/json') === true) {
-              try {
-                resolve(JSON.parse(buffer.toString('utf8')));
-              } catch (e) {
-                reject(e);
-              }
-            } else if (cType.includes('text/plain') === true || cType.includes('text/html') === true) {
-              try {
-                resolve(buffer.toString('utf8'));
-              } catch (e) {
-                reject(e);
-              }
-            } else {
-              resolve(buffer);
-            }
-          });
-        } else {
-          const dir = path.dirname(dest);
-          if (fs.existsSync(dir) === false) {
-            fs.mkdirSync(dir, { recursive: true });
-          }
-          if (fs.existsSync(dest) === true) {
-            fs.unlinkSync(dest);
-          }
-          const fws = fs.createWriteStream(dest, { flags: 'wx' });
-          if (timeout !== undefined) {
-            clearTimeout(timeoutObject);
-            timeoutObject = setTimeout(() => {
-              req.abort();
-              res.removeAllListeners();
-              res.destroy();
-              fws.close();
-              if (fs.existsSync(dest) === true) {
-                fs.unlinkSync(dest);
-              }
-              reject(new Error(`RES_TIMEOUT_${timeout}`));
-            }, timeout);
-          }
-          res.pipe(fws);
-          fws.on('error', (e) => {
-            // console.log('fws :: error');
-            if (timeout !== undefined) {
-              clearTimeout(timeoutObject);
-            }
+    (response) => {
+      // console.log('response ::');
+      const cType = response.headers['content-type'] || '';
+      const cEncoding = response.headers['content-encoding'] || '';
+      // const cLength = Number(response.headers['content-length']) || Infinity;
+      // console.log(response.statusCode);
+      // console.log(response.headers);
+      if (response.statusCode !== 200 && cType.includes('application/json') === false) {
+        req.abort();
+        response.removeAllListeners();
+        response.destroy();
+        reject(new Error(`RES_UNEXPECTED_${response.statusCode}`));
+        return;
+      }
+      if (dest !== undefined) {
+        const dir = path.dirname(dest);
+        if (fs.existsSync(dir) === false) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        if (fs.existsSync(dest) === true) {
+          fs.unlinkSync(dest);
+        }
+        const fws = fs.createWriteStream(dest, { flags: 'wx' });
+        if (timeout !== undefined) {
+          clearTimeout(timeoutObject);
+          timeoutObject = setTimeout(() => {
             req.abort();
-            res.removeAllListeners();
-            res.destroy();
+            response.removeAllListeners();
+            response.destroy();
             fws.close();
             if (fs.existsSync(dest) === true) {
               fs.unlinkSync(dest);
             }
-            reject(e);
-          });
-          fws.on('finish', () => {
-            // console.log('fws :: finish');
-            if (timeout !== undefined) {
-              clearTimeout(timeoutObject);
-            }
-            resolve(cLength);
-          });
+            reject(new Error(`RES_TIMEOUT_${timeout}`));
+          }, timeout);
         }
-      } else {
+        response.pipe(fws);
+        fws.on('error', (e) => {
+          if (timeout !== undefined) {
+            clearTimeout(timeoutObject);
+          }
+          req.abort();
+          response.removeAllListeners();
+          response.destroy();
+          fws.close();
+          if (fs.existsSync(dest) === true) {
+            fs.unlinkSync(dest);
+          }
+          reject(e);
+        });
+        fws.on('finish', () => {
+          if (timeout !== undefined) {
+            clearTimeout(timeoutObject);
+          }
+          resolve();
+        });
+        return;
+      }
+      if (timeout !== undefined) {
+        clearTimeout(timeoutObject);
+        timeoutObject = setTimeout(() => {
+          // console.log('response :: timeout');
+          req.abort();
+          response.removeAllListeners();
+          response.destroy();
+          reject(new Error(`RES_TIMEOUT_${timeout}`));
+        }, timeout);
+      }
+      let stream;
+      switch (cEncoding) {
+        case 'br': {
+          stream = response.pipe(zlib.createBrotliDecompress());
+          break;
+        }
+        case 'gzip': {
+          stream = response.pipe(zlib.createGunzip());
+          break;
+        }
+        case 'deflate': {
+          stream = response.pipe(zlib.createInflate());
+          break;
+        }
+        default: {
+          stream = response;
+          break;
+        }
+      }
+      let buffer;
+      stream.on('data', (chunk) => {
+        buffer = buffer === undefined ? chunk : Buffer.concat([buffer, chunk]);
+      });
+      stream.on('end', () => {
         if (timeout !== undefined) {
           clearTimeout(timeoutObject);
         }
-        req.abort();
-        res.removeAllListeners();
-        res.destroy();
-        reject(new Error(`RES_UNEXPECTED_${res.statusCode}`));
-      }
+        if (cType.includes('application/json') === true) {
+          try {
+            resolve(JSON.parse(buffer.toString('utf8')));
+          } catch (e) {
+            reject(e);
+          }
+          return;
+        }
+        if (cType.includes('text/plain') === true || cType.includes('text/html') === true) {
+          try {
+            resolve(buffer.toString('utf8'));
+          } catch (e) {
+            reject(e);
+          }
+          return;
+        }
+        resolve(buffer);
+      });
     },
   );
   if (timeout !== undefined) {
     timeoutObject = setTimeout(() => {
-      // console.log('req :: timeout');
       req.abort();
       reject(new Error(`REQ_TIMEOUT_${timeout}`));
     }, timeout);
   }
   req.on('error', (e) => {
-    // console.log('req :: error');
     if (timeout !== undefined) {
       clearTimeout(timeoutObject);
     }
@@ -314,9 +328,7 @@ const request = (config) => new Promise((resolve, reject) => {
       req.write(body);
     }
     if (form !== undefined) {
-      // console.log('---------');
       // form.forEach((item) => fs.appendFileSync('./dump.txt', item));
-      // console.log('---------');
       for (let i = 0, l = form.length; i < l; i += 1) {
         req.write(form[i]);
       }
