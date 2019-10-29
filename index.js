@@ -1,4 +1,4 @@
-/* eslint-disable no-console, prefer-destructuring */
+/* eslint-disable no-console, prefer-destructuring, no-continue */
 
 const fs = require('fs');
 const path = require('path');
@@ -12,140 +12,158 @@ const mime = require('mime-types');
 const request = (config) => new Promise((resolve, reject) => {
   if (typeof config !== 'object' || config === null) {
     reject(new Error('invalid non-object config'));
+    return;
   }
-  let url;
   let agent;
   if (config.url === undefined) {
     reject(new Error('invalid undefined config.url'));
-  } else if (typeof config.url !== 'string') {
-    reject(new Error('invalid non-string config.url'));
-  } else {
-    if (config.url.includes('https://') === true) {
-      agent = https;
-    } else if (config.url.includes('http://') === true) {
-      agent = http;
-    } else {
-      reject(new Error('invalid non-http non-https protocols'));
-    }
-    url = new URL(config.url);
+    return;
   }
+  if (typeof config.url !== 'string') {
+    reject(new Error('invalid non-string config.url'));
+    return;
+  }
+  if (config.url.includes('https://') === true) {
+    agent = https;
+  } else if (config.url.includes('http://') === true) {
+    agent = http;
+  } else {
+    reject(new Error('invalid non-http non-https protocols'));
+    return;
+  }
+  const url = new URL(config.url);
   let query;
   if (config.query !== undefined) {
     if (typeof config.query !== 'object' || config.query === null) {
       reject(new Error('invalid non-object config.query'));
-    } else if (url.search !== '') {
-      reject(new Error('invalid non-empty url search and non-object config.query'));
-    } else {
-      query = qs.stringify(config.query);
+      return;
     }
+    if (url.search !== '') {
+      reject(new Error('invalid non-empty url search and non-object config.query'));
+      return;
+    }
+    query = qs.stringify(config.query);
   }
   let dest;
   if (config.dest !== undefined) {
     if (typeof config.dest !== 'string') {
       reject(new Error('invalid non-string config.dest'));
-    } else {
-      dest = config.dest;
+      return;
     }
+    dest = config.dest;
   }
   const headers = {};
   let method = 'GET';
   if (config.body !== undefined && config.form !== undefined) {
     reject(new Error('invalid non-undefined config.body and non-undefined config.form'));
+    return;
   }
   let body;
   if (config.body !== undefined) {
     if (typeof config.body !== 'object' || config.body === null) {
       reject(new Error('invalid non-object config.body'));
-    } else {
-      method = 'POST';
-      body = JSON.stringify(config.body);
-      headers['content-type'] = 'application/json';
-      headers['content-length'] = Buffer.from(body).byteLength;
+      return;
     }
+    method = 'POST';
+    body = JSON.stringify(config.body);
+    headers['content-type'] = 'application/json';
+    headers['content-length'] = Buffer.from(body).byteLength;
   }
   let form;
   let boundary;
   if (config.form !== undefined) {
     if (Array.isArray(config.form) === false) {
       reject(new Error('invalid non-array config.form'));
-    } else {
-      method = 'POST';
-      boundary = crypto.randomBytes(16).toString('hex');
-      headers['content-type'] = `multipart/form-data; boundary=${boundary}`;
-      headers['content-length'] = 0;
-      form = config.form.map((item, index) => {
-        let buffer;
-        let data = '';
+      return;
+    }
+    method = 'POST';
+    boundary = crypto.randomBytes(16).toString('hex');
+    headers['content-type'] = `multipart/form-data; boundary=${boundary}`;
+    headers['content-length'] = 0;
+    form = new Array(config.form.length);
+    for (let i = 0, l = config.form.length; i < l; i += 1) {
+      const item = config.form[i];
+      let data = '';
 
-        // BOUNDARY START:
-        if (index > 0) {
-          data += '\r\n';
-        }
-        data += `--${boundary}`;
-
-        // CONTENT DISPOSITION:
-        if (item.name === undefined || typeof item.name !== 'string' || item.name === '') {
-          reject(new Error(`invalid form[${index}].name`));
-        }
-        data += `\r\ncontent-disposition: form-data; name="${item.name}"`;
-        if (item.filename !== undefined) {
-          if (typeof item.filename !== 'string' || item.filename === '') {
-            reject(new Error(`invalid form[${index}].filename`));
-          }
-          data += `; filename="${item.filename}"`;
-        } else if (Buffer.isBuffer(item.data) === true) {
-          data += `; filename="${item.name}"`;
-        }
-
-        // CONTENT TYPE:
-        if (item.filename !== undefined) {
-          const type = mime.lookup(item.filename);
-          if (type !== false) {
-            data += `\r\ncontent-type: ${type}`;
-          }
-        } else if (Buffer.isBuffer(item.data) === true) {
-          data += '\r\ncontent-type: application/octet-stream';
-        }
-
-        // DATA:
+      // boundary:
+      if (i > 0) {
         data += '\r\n';
-        if (item.data === undefined) {
-          reject(new Error(`invalid undefined form[${index}].data`));
-        } else if (typeof item.data === 'string') {
-          data += `\r\n${item.data}`;
-          if (index === config.form.length - 1) {
-            data += `\r\n--${boundary}--`;
-          }
-          buffer = Buffer.from(data);
-          headers['content-length'] += buffer.byteLength;
-          return buffer;
-        } else if (Buffer.isBuffer(item.data) === true) {
-          data += '\r\n';
-          buffer = Buffer.concat([
-            Buffer.from(data),
-            item.data,
-            Buffer.from(`\r\n--${boundary}--`),
-          ]);
-          headers['content-length'] += buffer.byteLength;
-          return buffer;
-        } else {
-          reject(new Error(`invalid non-string non-buffer form[${index}].data`));
+      }
+      data += `--${boundary}`;
+
+      // content disposition:
+      if (item.name === undefined || typeof item.name !== 'string' || item.name === '') {
+        reject(new Error(`invalid form[${i}].name`));
+        return;
+      }
+      data += `\r\ncontent-disposition: form-data; name="${item.name}"`;
+      if (item.filename !== undefined) {
+        if (typeof item.filename !== 'string' || item.filename === '') {
+          reject(new Error(`invalid form[${i}].filename`));
+          return;
         }
-        return undefined;
-      });
+        data += `; filename="${item.filename}"`;
+      } else if (Buffer.isBuffer(item.data) === true) {
+        data += `; filename="${item.name}"`;
+      }
+
+      // content type:
+      if (item.filename !== undefined) {
+        const type = mime.lookup(item.filename);
+        if (type !== false) {
+          data += `\r\ncontent-type: ${type}`;
+        }
+      } else if (Buffer.isBuffer(item.data) === true) {
+        data += '\r\ncontent-type: application/octet-stream';
+      }
+
+      // data:
+      data += '\r\n';
+      if (item.data === undefined) {
+        reject(new Error(`invalid undefined form[${i}].data`));
+        return;
+      }
+
+      if (typeof item.data === 'string') {
+        data += `\r\n${item.data}`;
+        if (i === config.form.length - 1) {
+          data += `\r\n--${boundary}--`;
+        }
+        const buffer = Buffer.from(data);
+        headers['content-length'] += buffer.byteLength;
+        form[i] = buffer;
+        continue;
+      }
+      if (Buffer.isBuffer(item.data) === true) {
+        data += '\r\n';
+        const buffer = Buffer.concat([
+          Buffer.from(data),
+          item.data,
+          Buffer.from(`\r\n--${boundary}--`),
+        ]);
+        headers['content-length'] += buffer.byteLength;
+        form[i] = buffer;
+        continue;
+      }
+      reject(new Error(`invalid non-string non-buffer form[${i}].data`));
+      return;
     }
   }
   let timeout;
   if (config.timeout !== undefined) {
     if (typeof config.timeout !== 'number') {
       reject(new Error('invalid non-number config.timeout'));
-    } else if (Number.isNaN(config.timeout) === true) {
-      reject(new Error('invalid NaN config.timeout'));
-    } else if (Number.isFinite(config.timeout) === false) {
-      reject(new Error('invalid non-finite config.timeout'));
-    } else {
-      timeout = config.timeout;
+      return;
     }
+    if (Number.isNaN(config.timeout) === true) {
+      reject(new Error('invalid NaN config.timeout'));
+      return;
+    }
+    if (Number.isFinite(config.timeout) === false) {
+      reject(new Error('invalid non-finite config.timeout'));
+      return;
+    }
+    timeout = config.timeout;
   }
 
   let timeoutObject;
