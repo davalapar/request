@@ -30,7 +30,7 @@ const request = require('@davalapar/request');
     form: [
       {
         name: '', // required string
-        filename: '', // optional string
+        filename: '', // optional string, required if data is buffer
         type: '', // optional string
         data: '', // required string or buffer
       }

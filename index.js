@@ -78,21 +78,28 @@ const request = (config) => new Promise((resolve, reject) => {
       form = config.form.map((item, index) => {
         let buffer;
         let data = '';
+
+        // BOUNDARY START:
         if (index > 0) {
           data += '\r\n';
         }
         data += `--${boundary}`;
+
+        // CONTENT DISPOSITION:
         if (item.name === undefined || typeof item.name !== 'string' || item.name === '') {
           reject(new Error(`invalid form[${index}].name`));
-        } else if (item.filename !== undefined) {
+        }
+        data += `\r\ncontent-disposition: form-data; name="${item.name}"`;
+        if (item.filename !== undefined) {
           if (typeof item.filename !== 'string' || item.filename === '') {
             reject(new Error(`invalid form[${index}].filename`));
-          } else {
-            data += `content-disposition: form-data; name="${item.name}"; name="${item.filename}"`;
           }
-        } else {
-          data += `\r\ncontent-disposition: form-data; name="${item.name}"`;
+          data += `; filename="${item.filename}"`;
+        } else if (Buffer.isBuffer(item.data) === true) {
+          reject(new Error(`invalid form[${index}].filename`));
         }
+
+        // CONTENT TYPE:
         if (item.type !== undefined) {
           if (typeof item.type !== 'string' || item.type === '') {
             reject(new Error(`invalid form[${index}].type`));
@@ -107,6 +114,8 @@ const request = (config) => new Promise((resolve, reject) => {
         } else if (Buffer.isBuffer(item.data) === true) {
           data += '\r\ncontent-type: application/octet-stream';
         }
+
+        // DATA:
         data += '\r\n';
         if (item.data === undefined) {
           reject(new Error(`invalid undefined form[${index}].data`));
@@ -119,7 +128,13 @@ const request = (config) => new Promise((resolve, reject) => {
           headers['content-length'] += buffer.byteLength;
           return buffer;
         } else if (Buffer.isBuffer(item.data) === true) {
-          buffer = Buffer.concat([Buffer.from(data), item.data]);
+          data += '\r\n';
+          console.log({ data });
+          buffer = Buffer.concat([
+            Buffer.from(data),
+            item.data,
+            Buffer.from(`\r\n--${boundary}--`),
+          ]);
           headers['content-length'] += buffer.byteLength;
           return buffer;
         } else {
@@ -151,7 +166,6 @@ const request = (config) => new Promise((resolve, reject) => {
     pathname += `?${query}`;
   }
 
-  /*
   console.log({
     method,
     url,
@@ -160,7 +174,6 @@ const request = (config) => new Promise((resolve, reject) => {
     form,
     headers,
   });
-  */
 
   const req = agent.request(
     {
@@ -290,9 +303,9 @@ const request = (config) => new Promise((resolve, reject) => {
       req.write(body);
     }
     if (form !== undefined) {
-      // console.log('---------');
-      // form.forEach((item) => console.log(item.toString('utf8')));
-      // console.log('---------');
+      console.log('---------');
+      form.forEach((item) => fs.appendFileSync('./dump.txt', item));
+      console.log('---------');
       for (let i = 0, l = form.length; i < l; i += 1) {
         req.write(form[i]);
       }

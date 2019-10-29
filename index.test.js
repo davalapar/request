@@ -34,19 +34,14 @@ const request = require('./index');
 
     // telegram request body, multipart/form-data
     // url: 'https://postman-echo.com/post',
-    url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
+    // url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
+    url: `https://api.telegram.org/bot${tgBotToken}/sendPhoto`,
     form: [
-      {
-        name: 'chat_id',
-        data: '-1001471087738',
-      },
-      {
-        name: 'text',
-        data: 'request body, multipart/form-data',
-        // filename: '',
-        // type: '',
-      },
+      { name: 'chat_id', data: '-1001471087738' },
+      // { name: 'text', data: 'request body, multipart/form-data' },
+      { name: 'photo', filename: 'photo.jpg', data: fs.readFileSync('./test.jpg') },
     ],
+
     timeout: 10000,
   })
     .then((result) => {
