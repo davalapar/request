@@ -73,7 +73,7 @@ const request = (config) => new Promise((resolve, reject) => {
       method = 'POST';
       boundary = crypto.randomBytes(16).toString('hex');
       headers['content-type'] = `multipart/form-data; boundary=${boundary}`;
-      headers['transfer-encoding'] = 'chunked';
+      // headers['transfer-encoding'] = 'chunked';
       headers['content-length'] = 0;
       form = config.form.map((item, index) => {
         let buffer;
@@ -117,9 +117,12 @@ const request = (config) => new Promise((resolve, reject) => {
 
         // DATA:
         data += '\r\n';
+        console.log('asd');
         if (item.data === undefined) {
+          console.log('asd2');
           reject(new Error(`invalid undefined form[${index}].data`));
-        } else if (typeof data === 'string') {
+        } else if (typeof item.data === 'string') {
+          console.log('asd3');
           data += `\r\n${item.data}`;
           if (index === config.form.length - 1) {
             data += `\r\n--${boundary}--`;
@@ -128,6 +131,7 @@ const request = (config) => new Promise((resolve, reject) => {
           headers['content-length'] += buffer.byteLength;
           return buffer;
         } else if (Buffer.isBuffer(item.data) === true) {
+          console.log('asd4');
           data += '\r\n';
           console.log({ data });
           buffer = Buffer.concat([
@@ -303,9 +307,9 @@ const request = (config) => new Promise((resolve, reject) => {
       req.write(body);
     }
     if (form !== undefined) {
-      console.log('---------');
-      form.forEach((item) => fs.appendFileSync('./dump.txt', item));
-      console.log('---------');
+      // console.log('---------');
+      // form.forEach((item) => fs.appendFileSync('./dump.txt', item));
+      // console.log('---------');
       for (let i = 0, l = form.length; i < l; i += 1) {
         req.write(form[i]);
       }
