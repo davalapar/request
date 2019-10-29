@@ -14,12 +14,14 @@ const request = require('@davalapar/request');
 
     // optional object, request query
     // search parameters
+    // WHEN TO USE: simple search queries
     query: {},
 
     // optional object, request body,
     // sets content-type to application/json
     // sets content-length
     // sets method to POST
+    // WHEN TO USE: sending JSON-compatible data
     body: {},
 
     // optional array, request form data,
@@ -27,6 +29,7 @@ const request = require('@davalapar/request');
     // transfer-encoding
     // sets content-length
     // sets method to POST
+    // WHEN TO USE: sending non-ascii data, binary data, files
     form: [
       {
 
@@ -64,11 +67,13 @@ const request = require('@davalapar/request');
 - request method
   - `POST` if `config.body` is set
   - `GET` if `config.body` not set
+- request form
+  - from `config.form` if set
 - response
-  - object if header `content-type` includes `application/json`
-  - string if header `content-type` includes `text/plain`
-  - buffer if `config.dest` not set
-  - undefined if `config.dest` is set
+  - `Object` if header `content-type` includes `application/json`
+  - `String` if header `content-type` includes `text/plain`or `text/html`
+  - `Buffer` if `config.dest` not set
+  - `undefined` if `config.dest` is set
 
 #### License
 

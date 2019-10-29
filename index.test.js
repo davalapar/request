@@ -9,7 +9,14 @@ const request = require('./index');
    * - if response headers contains text/plain, we return it
    * - if timeout is specified, and triggered
    */
+  if (fs.existsSync('./env/tgBotToken.txt') === false) {
+    throw Error('/env/tgBotToken.txt does not exist.');
+  }
+  if (fs.existsSync('./env/test.jpg') === false) {
+    throw Error('/env/test.jpg does not exist.');
+  }
   const tgBotToken = fs.readFileSync('./env/tgBotToken.txt', 'utf8');
+
   request({
     // large file 50mb
     // url: 'http://212.183.159.230/1MB.zip',
@@ -30,7 +37,8 @@ const request = require('./index');
 
     // telegram request body, application/json
     // url: `https://api.telegram.org/bot${tgBotToken}/sendMessage`,
-    // body: { chat_id: -1001471087738, text: 'request body, application/json' },
+    // body: { chat_id: -1001471087738, text: 'request body, application/json😂' },
+    // body: { chat_id: -1001471087738, text: 'test emojis 😂😎☺️😯😓😔😕' },
 
     // telegram request body, multipart/form-data
     // url: 'https://postman-echo.com/post',
@@ -38,8 +46,8 @@ const request = require('./index');
     url: `https://api.telegram.org/bot${tgBotToken}/sendPhoto`,
     form: [
       { name: 'chat_id', data: '-1001471087738' },
-      // { name: 'text', data: 'request body, multipart/form-data' },
-      { name: 'photo', filename: 'photo.jpg', data: fs.readFileSync('./test.jpg') },
+      //   { name: 'text', data: 'request body, multipart/form-data' },
+      { name: 'photo', filename: 'photo.jpg', data: fs.readFileSync('./env/test.jpg') },
     ],
 
     timeout: 10000,

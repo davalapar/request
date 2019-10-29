@@ -9,7 +9,6 @@ const crypto = require('crypto');
 
 const mime = require('mime-types');
 
-
 const request = (config) => new Promise((resolve, reject) => {
   if (typeof config !== 'object' || config === null) {
     reject(new Error('invalid non-object config'));
@@ -61,7 +60,7 @@ const request = (config) => new Promise((resolve, reject) => {
       method = 'POST';
       body = JSON.stringify(config.body);
       headers['content-type'] = 'application/json';
-      headers['content-length'] = body.length; // will produce error if body has non-ascii utf8
+      headers['content-length'] = Buffer.from(body).byteLength;
     }
   }
   let form;
@@ -73,7 +72,6 @@ const request = (config) => new Promise((resolve, reject) => {
       method = 'POST';
       boundary = crypto.randomBytes(16).toString('hex');
       headers['content-type'] = `multipart/form-data; boundary=${boundary}`;
-      // headers['transfer-encoding'] = 'chunked';
       headers['content-length'] = 0;
       form = config.form.map((item, index) => {
         let buffer;
