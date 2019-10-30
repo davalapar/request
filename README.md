@@ -22,7 +22,13 @@ const request = require('@davalapar/request');
     query: {},
 
     // optional Boolean
+    text: true,
+
+    // optional Boolean
     json: true,
+
+    // optional Boolean
+    compression: true,
 
     // optional Object
     body: {},
@@ -58,42 +64,42 @@ const request = require('@davalapar/request');
 
 - request `query` parameter
   - for search / query parameters such as `?foo=bar`
-  - works with request `body` or `form` parameters
-  - works for `GET` and `POST` methods
+  - compatible with: `body`, `form`
+- request `text` parameter
+  - sets `accept: text/*`
+  - parse response into `String` if `content-type: text/*`
+  - incompatible with: `json`, `destination`
 - request `json` parameter
-  - allows JSON-parsing of response
   - sets `accept: application/json`
-  - ignored if `destination` parameter exists
+  - parse response into `Object` if `content-type: application/json`
+  - incompatible with: `text`, `destination`
 - request `body` parameter
+  - sets `method: POST`
   - sets `accept: application/json`
   - sets `content-type: application/json`
   - accepts non-ascii utf8 strings, emojis
-  - works with request query parameter
-  - does not work with request `form` parameter
+  - incompatible with: `form`
   - uses `POST` method
 - request `form` parameter
+  - sets `method: POST`
   - sets `content-type: multipart/form-data`
-  - accepts utf8 strings & binary data
-  - works with request query parameter
-  - does not work with request `body` parameter
-  - uses `POST` method
-- request decompression
-  - sets `accept-encoding: 'br, gzip, deflate`
-  - accepts `content-encoding: br/gzip/deflate`
+  - accepts utf8 strings,  binary data
+  - incompatible with: `body`
 - request `destination` parameter
   - file destination path
-  - also creates parent directories
-- request `timeout`
+  - creates parent directories
+  - incompatible with: `text`, `json`
+- request `timeout` parameter
   - request timeout in ms
-- request `maxSize`
+- request `maxSize` parameter
   - response max size in bytes
+- request `compression` parameter
+  - sets `accept-encoding: 'br, gzip, deflate`
+  - accepts `content-encoding: br/gzip/deflate`
 - throws `error` on non-200 responses
 - non-200 response data as `error.data`
 - throws `error` on response data parsing error
-- return `content-type: application/json` as `Object`
-- return `content-type: text/plain` as `String`
-- return `content-type: text/html` as `String`
-- return everything else as `Buffer`, if `destination` not provided
+- if `text` & `json` parameter not set, returns `Buffer`
 
 #### License
 

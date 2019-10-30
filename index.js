@@ -51,15 +51,30 @@ const request = (config) => new Promise((resolve, reject) => {
       reject(new Error('invalid non-string config.destination'));
       return;
     }
+    if (config.text !== undefined) {
+      reject(new Error('invalid non-undefined config.text and non-undefined config.destination'));
+      return;
+    }
+    if (config.json !== undefined) {
+      reject(new Error('invalid non-undefined config.json and non-undefined config.destination'));
+      return;
+    }
     destination = config.destination;
   }
-  const headers = {
-    'accept-encoding': 'br, gzip, deflate',
-  };
+  const headers = {};
   let method = 'GET';
-  if (config.body !== undefined && config.form !== undefined) {
-    reject(new Error('invalid non-undefined config.body and non-undefined config.form'));
+  if (config.text !== undefined && config.json !== undefined) {
+    reject(new Error('invalid non-undefined config.text and non-undefined config.json'));
     return;
+  }
+  let text;
+  if (config.text !== undefined) {
+    if (typeof config.text !== 'boolean') {
+      reject(new Error('invalid non-boolean config.text'));
+      return;
+    }
+    text = true;
+    headers.accept = 'text/*';
   }
   let json;
   if (config.json !== undefined) {
@@ -69,6 +84,10 @@ const request = (config) => new Promise((resolve, reject) => {
     }
     json = true;
     headers.accept = 'application/json';
+  }
+  if (config.body !== undefined && config.form !== undefined) {
+    reject(new Error('invalid non-undefined config.body and non-undefined config.form'));
+    return;
   }
   let body;
   if (config.body !== undefined) {
@@ -162,6 +181,15 @@ const request = (config) => new Promise((resolve, reject) => {
       reject(new Error(`invalid non-string non-buffer form[${i}].data`));
       return;
     }
+  }
+  let compression;
+  if (config.compression !== undefined) {
+    if (typeof config.compression !== 'boolean') {
+      reject(new Error('invalid non-boolean config.compression'));
+      return;
+    }
+    compression = true;
+    headers['accept-encoding'] = 'br, gzip, deflate';
   }
   let timeout;
   if (config.timeout !== undefined) {
@@ -269,23 +297,27 @@ const request = (config) => new Promise((resolve, reject) => {
             reject(new Error(`RES_TIMEOUT_${timeout}_MS`));
           }, timeout);
         }
-        switch (cEncoding) {
-          case 'br': {
-            response.pipe(zlib.createBrotliDecompress()).pipe(fws);
-            break;
+        if (compression === true) {
+          switch (cEncoding) {
+            case 'br': {
+              response.pipe(zlib.createBrotliDecompress()).pipe(fws);
+              break;
+            }
+            case 'gzip': {
+              response.pipe(zlib.createGunzip()).pipe(fws);
+              break;
+            }
+            case 'deflate': {
+              response.pipe(zlib.createInflate()).pipe(fws);
+              break;
+            }
+            default: {
+              response.pipe(fws);
+              break;
+            }
           }
-          case 'gzip': {
-            response.pipe(zlib.createGunzip()).pipe(fws);
-            break;
-          }
-          case 'deflate': {
-            response.pipe(zlib.createInflate()).pipe(fws);
-            break;
-          }
-          default: {
-            response.pipe(fws);
-            break;
-          }
+        } else {
+          response.pipe(fws);
         }
         fws.on('error', (e) => {
           if (timeout !== undefined) {
@@ -318,23 +350,27 @@ const request = (config) => new Promise((resolve, reject) => {
         }, timeout);
       }
       let stream;
-      switch (cEncoding) {
-        case 'br': {
-          stream = response.pipe(zlib.createBrotliDecompress());
-          break;
+      if (compression === true) {
+        switch (cEncoding) {
+          case 'br': {
+            stream = response.pipe(zlib.createBrotliDecompress());
+            break;
+          }
+          case 'gzip': {
+            stream = response.pipe(zlib.createGunzip());
+            break;
+          }
+          case 'deflate': {
+            stream = response.pipe(zlib.createInflate());
+            break;
+          }
+          default: {
+            stream = response;
+            break;
+          }
         }
-        case 'gzip': {
-          stream = response.pipe(zlib.createGunzip());
-          break;
-        }
-        case 'deflate': {
-          stream = response.pipe(zlib.createInflate());
-          break;
-        }
-        default: {
-          stream = response;
-          break;
-        }
+      } else {
+        stream = response;
       }
       let buffer;
       stream.on('data', (chunk) => {
@@ -349,16 +385,14 @@ const request = (config) => new Promise((resolve, reject) => {
         if (response.statusCode !== 200) {
           error = new Error(`RES_UNEXPECTED_${response.statusCode}`);
         }
-        if (json === true && cType.includes('application/json') === true) {
-          if (buffer !== undefined) {
+        if (buffer !== undefined) {
+          if (json === true && cType.includes('application/json') === true) {
             try {
               data = JSON.parse(buffer.toString('utf8'));
             } catch (e) {
               error = e;
             }
-          }
-        } else if (cType.includes('text/plain') === true || cType.includes('text/html') === true) {
-          if (buffer !== undefined) {
+          } else if (text === true && cType.includes('text/') === true) {
             try {
               data = buffer.toString('utf8');
             } catch (e) {
