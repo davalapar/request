@@ -212,6 +212,10 @@ const request = (config) => new Promise((resolve, reject) => {
       reject(new Error('invalid non-finite config.timeout'));
       return;
     }
+    if (Math.floor(config.timeout) !== config.timeout) {
+      reject(new Error('invalid non-integer config.timeout'));
+      return;
+    }
     timeout = config.timeout;
   }
   let maxSize = Infinity;
