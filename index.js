@@ -61,6 +61,15 @@ const request = (config) => new Promise((resolve, reject) => {
     reject(new Error('invalid non-undefined config.body and non-undefined config.form'));
     return;
   }
+  let json;
+  if (config.json !== undefined) {
+    if (typeof config.json !== 'boolean') {
+      reject(new Error('invalid non-boolean config.json'));
+      return;
+    }
+    json = true;
+    headers.accept = 'application/json';
+  }
   let body;
   if (config.body !== undefined) {
     if (typeof config.body !== 'object' || config.body === null) {
@@ -69,6 +78,8 @@ const request = (config) => new Promise((resolve, reject) => {
     }
     method = 'POST';
     body = JSON.stringify(config.body);
+    json = true;
+    headers.accept = 'application/json';
     headers['content-type'] = 'application/json';
     headers['content-length'] = Buffer.from(body).byteLength;
   }
@@ -258,7 +269,24 @@ const request = (config) => new Promise((resolve, reject) => {
             reject(new Error(`RES_TIMEOUT_${timeout}_MS`));
           }, timeout);
         }
-        response.pipe(fws);
+        switch (cEncoding) {
+          case 'br': {
+            response.pipe(zlib.createBrotliDecompress()).pipe(fws);
+            break;
+          }
+          case 'gzip': {
+            response.pipe(zlib.createGunzip()).pipe(fws);
+            break;
+          }
+          case 'deflate': {
+            response.pipe(zlib.createInflate()).pipe(fws);
+            break;
+          }
+          default: {
+            response.pipe(fws);
+            break;
+          }
+        }
         fws.on('error', (e) => {
           if (timeout !== undefined) {
             clearTimeout(timeoutObject);
@@ -321,7 +349,7 @@ const request = (config) => new Promise((resolve, reject) => {
         if (response.statusCode !== 200) {
           error = new Error(`RES_UNEXPECTED_${response.statusCode}`);
         }
-        if (cType.includes('application/json') === true) {
+        if (json === true && cType.includes('application/json') === true) {
           if (buffer !== undefined) {
             try {
               data = JSON.parse(buffer.toString('utf8'));

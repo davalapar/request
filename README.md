@@ -14,57 +14,41 @@ const request = require('@davalapar/request');
 
 (async () => {
   const response = await request({
-    // required string
-    // must include 'http://' or 'https://'
+
+    // required String
     url: 'https://...',
 
-    // optional object, request query
-    // search parameters
-    // WHEN TO USE: simple search queries
+    // optional Object
     query: {},
 
-    // optional object, request body,
-    // sets content-type to application/json
-    // sets content-length
-    // sets method to POST
-    // WHEN TO USE: sending JSON-compatible data
+    // optional Boolean
+    json: true,
+
+    // optional Object
     body: {},
 
-    // optional array, request form data,
-    // sets content-type to multipart/form-data
-    // transfer-encoding
-    // sets content-length
-    // sets method to POST
-    // WHEN TO USE: sending non-ascii data, binary data, files
+    // optional Array
     form: [
       {
 
-        // required string
-        // name of field
-        name: '',
+        // required String
+        name: 'photo',
 
-        // optional string,
-        // recommended if data is buffer,
-        // helps in correct mime-type lookup
-        filename: '',
+        // optional String
+        filename: 'photo.jpg',
 
-        // required string or buffer
-        // the data itself
+        // required String or Buffer
         data: '',
       }
     ],
 
-    // optional string, save destination path
-    // if not set, response will be a buffer
+    // optional String
     destination: './dir/filename.ext',
 
-    // optional number, timeout in ms
-    // will abort request & destroy response
+    // optional Number
     timeout: 30000,
 
-    // optional number,
-    // max size in bytes
-    // must be an integer
+    // optional Number
     maxSize: 1000,
   });
 })();
@@ -72,30 +56,43 @@ const request = require('@davalapar/request');
 
 #### Highlights
 
-- request query parameters
-  - accepts parameters such as `?foo=bar`
+- request `query` parameter
+  - for search / query parameters such as `?foo=bar`
+  - works with request `body` or `form` parameters
   - works for `GET` and `POST` methods
-- request body parameters
+- request `json` parameter
+  - allows JSON-parsing of response
+  - sets `accept: application/json`
+  - ignored if `destination` parameter exists
+- request `body` parameter
+  - sets `accept: application/json`
   - sets `content-type: application/json`
   - accepts non-ascii utf8 strings, emojis
-  - works with request query parameters
+  - works with request query parameter
+  - does not work with request `form` parameter
   - uses `POST` method
-- request form parameters
+- request `form` parameter
   - sets `content-type: multipart/form-data`
   - accepts utf8 strings & binary data
-  - works with request query parameters
+  - works with request query parameter
+  - does not work with request `body` parameter
   - uses `POST` method
 - request decompression
   - sets `accept-encoding: 'br, gzip, deflate`
   - accepts `content-encoding: br/gzip/deflate`
-- request `timeout` in ms
-- request `maxSize` in bytes
+- request `destination` parameter
+  - file destination path
+  - also creates parent directories
+- request `timeout`
+  - request timeout in ms
+- request `maxSize`
+  - response max size in bytes
 - throws `error` on non-200 responses
 - non-200 response data as `error.data`
 - throws `error` on response data parsing error
-- return `content-type=application/json` as `Object`
-- return `content-type=text/plain` as `String`
-- return `content-type=text/html` as `String`
+- return `content-type: application/json` as `Object`
+- return `content-type: text/plain` as `String`
+- return `content-type: text/html` as `String`
 - return everything else as `Buffer`, if `destination` not provided
 
 #### License
