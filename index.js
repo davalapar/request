@@ -62,7 +62,13 @@ const request = (config) => new Promise((resolve, reject) => {
     destination = config.destination;
   }
   const headers = {};
-  let method = 'GET';
+  if (config.userAgent !== undefined) {
+    if (typeof config.userAgent !== 'string' || config.userAgent === '') {
+      reject(new Error('invalid non-string / empty-string config.userAgent'));
+      return;
+    }
+    headers['user-agent'] = config.userAgent;
+  }
   if (config.text !== undefined && config.json !== undefined) {
     reject(new Error('invalid non-undefined config.text and non-undefined config.json'));
     return;
@@ -89,6 +95,7 @@ const request = (config) => new Promise((resolve, reject) => {
     reject(new Error('invalid non-undefined config.body and non-undefined config.form'));
     return;
   }
+  let method = 'GET';
   let body;
   if (config.body !== undefined) {
     if (typeof config.body !== 'object' || config.body === null) {

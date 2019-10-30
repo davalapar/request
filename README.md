@@ -15,6 +15,9 @@ const request = require('@davalapar/request');
 (async () => {
   const response = await request({
 
+    // optiona String
+    userAgent: '',
+
     // required String
     url: 'https://...',
 
@@ -62,6 +65,8 @@ const request = require('@davalapar/request');
 
 #### Highlights
 
+- request `userAgent` parameter
+  - sets `user-agent: userAgent`
 - request `query` parameter
   - for search / query parameters such as `?foo=bar`
   - compatible with: `body`, `form`
