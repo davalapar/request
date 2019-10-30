@@ -50,13 +50,15 @@ const request = require('./index');
     // { name: 'photo', filename: 'photo.jpg', data: fs.readFileSync('./env/test.jpg') },
     // ],
 
-    url: 'https://en.wikipedia.org/wiki/Content_negotiation',
+    // url: 'https://en.wikipedia.org/wiki/Content_negotiation',
+
+    url: 'https://httpstat.us/500',
 
     timeout: 10000,
     // maxSize: 1000,
   })
     .then((result) => {
-      // console.log({ result });
+      console.log({ result });
       // console.log(JSON.stringify(result, null, 2));
     })
     .catch((error) => {

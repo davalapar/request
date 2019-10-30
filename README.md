@@ -1,7 +1,13 @@
 
 ## @davalapar/request
 
+server-side requests made ez
+
 #### Usage
+
+```sh
+yarn add @davalapar/request
+```
 
 ```js
 const request = require('@davalapar/request');
@@ -64,21 +70,33 @@ const request = require('@davalapar/request');
 })();
 ```
 
-- request query
-  - from `config.query` if set
-  - from `config.url` if set
-- request body
-  - from `config.body` if set
-- request method
-  - `POST` if `config.body` is set
-  - `GET` if `config.body` not set
-- request form
-  - from `config.form` if set
-- response
-  - `Object` if header `content-type` includes `application/json`
-  - `String` if header `content-type` includes `text/plain`or `text/html`
-  - `Buffer` if `config.destination` not set
-  - `undefined` if `config.destination` is set
+#### Highlights
+
+- request query parameters
+  - accepts parameters such as `?foo=bar`
+  - works for `GET` and `POST` methods
+- request body parameters
+  - sets `content-type: application/json`
+  - accepts non-ascii utf8 strings, emojis
+  - works with request query parameters
+  - uses `POST` method
+- request form parameters
+  - sets `content-type: multipart/form-data`
+  - accepts utf8 strings & binary data
+  - works with request query parameters
+  - uses `POST` method
+- request decompression
+  - sets `accept-encoding: 'br, gzip, deflate`
+  - accepts `content-encoding: br/gzip/deflate`
+- request `timeout` in ms
+- request `maxSize` in bytes
+- throws `error` on non-200 responses
+- non-200 response data as `error.data`
+- throws `error` on response data parsing error
+- return `content-type=application/json` as `Object`
+- return `content-type=text/plain` as `String`
+- return `content-type=text/html` as `String`
+- return everything else as `Buffer`, if `destination` not provided
 
 #### License
 

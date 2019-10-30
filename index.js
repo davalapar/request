@@ -237,14 +237,7 @@ const request = (config) => new Promise((resolve, reject) => {
       }
       // console.log(response.statusCode);
       // console.log(response.headers);
-      if (response.statusCode !== 200 && cType.includes('application/json') === false) {
-        req.abort();
-        response.removeAllListeners();
-        response.destroy();
-        reject(new Error(`RES_UNEXPECTED_${response.statusCode}`));
-        return;
-      }
-      if (destination !== undefined) {
+      if (response.statusCode === 200 && destination !== undefined) {
         const dir = path.dirname(destination);
         if (fs.existsSync(dir) === false) {
           fs.mkdirSync(dir, { recursive: true });
@@ -323,23 +316,34 @@ const request = (config) => new Promise((resolve, reject) => {
         if (timeout !== undefined) {
           clearTimeout(timeoutObject);
         }
+        let data;
+        let error;
+        if (response.statusCode !== 200) {
+          error = new Error(`RES_UNEXPECTED_${response.statusCode}`);
+        }
         if (cType.includes('application/json') === true) {
-          try {
-            resolve(JSON.parse(buffer.toString('utf8')));
-          } catch (e) {
-            reject(e);
+          if (buffer !== undefined) {
+            try {
+              data = JSON.parse(buffer.toString('utf8'));
+            } catch (e) {
+              error = e;
+            }
           }
-          return;
-        }
-        if (cType.includes('text/plain') === true || cType.includes('text/html') === true) {
-          try {
-            resolve(buffer.toString('utf8'));
-          } catch (e) {
-            reject(e);
+        } else if (cType.includes('text/plain') === true || cType.includes('text/html') === true) {
+          if (buffer !== undefined) {
+            try {
+              data = buffer.toString('utf8');
+            } catch (e) {
+              error = e;
+            }
           }
-          return;
         }
-        resolve(buffer);
+        if (error === undefined) {
+          resolve(data);
+        } else {
+          error.data = data;
+          reject(error);
+        }
       });
     },
   );
