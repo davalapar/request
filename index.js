@@ -8,10 +8,13 @@ const qs = require('querystring');
 const crypto = require('crypto');
 const zlib = require('zlib');
 const stream = require('stream');
+const dns = require('dns');
 
 const mime = require('mime-types');
 
 const destCompatibleStatusCodes = [200, 201, 204];
+
+const dnsCache = new Map();
 
 const request = (config) => new Promise((resolve, reject) => {
   if (typeof config !== 'object' || config === null) {
@@ -271,6 +274,54 @@ const request = (config) => new Promise((resolve, reject) => {
       host: url.hostname,
       path: pathname,
       port: url.port,
+      lookup: (hostname, options, callback) => {
+        if (dnsCache.has(hostname) === true) {
+          const [address, family, ttlInMs, timestamp] = dnsCache.get(hostname);
+          if (Date.now() - timestamp < timestamp + ttlInMs) {
+            callback(null, address, family);
+            return;
+          }
+          dnsCache.delete(hostname);
+        }
+        let done = 0;
+        let resolved = false;
+        dns.resolve4(hostname, { ttl: true }, (error, addresses) => {
+          done += 1;
+          if (resolved === false) {
+            if (error !== null && done === 2) {
+              callback(error);
+              return;
+            }
+            if (addresses !== undefined) {
+              resolved = true;
+              const { address, ttl } = addresses[0];
+              const ttlInMs = ttl * 1000;
+              const family = 4;
+              const timestamp = Date.now();
+              dnsCache.set(hostname, [address, family, ttlInMs, timestamp]);
+              callback(null, address, family);
+            }
+          }
+        });
+        dns.resolve6(hostname, { ttl: true }, (error, addresses) => {
+          done += 1;
+          if (resolved === false) {
+            if (error !== null && done === 2) {
+              callback(error);
+              return;
+            }
+            if (addresses !== undefined) {
+              resolved = true;
+              const { address, ttl } = addresses[0];
+              const ttlInMs = ttl * 1000;
+              const family = 6;
+              const timestamp = Date.now();
+              dnsCache.set(hostname, [address, family, ttlInMs, timestamp]);
+              callback(null, address, family);
+            }
+          }
+        });
+      },
     },
     (response) => {
       // console.log(response.statusCode);
@@ -477,5 +528,7 @@ const request = (config) => new Promise((resolve, reject) => {
     reject(e);
   }
 });
+
+request.dnsCache = dnsCache;
 
 module.exports = request;

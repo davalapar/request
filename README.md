@@ -110,6 +110,7 @@ const request = require('@davalapar/request');
   - returns `Buffer` if `text` & `json` parameter not set
   - rejects with `error` on response data `json` parsing error
   - rejects with `error` on valid responses, with response data as `error.data`
+  - caching of DNS lookups in respect to `ttl`, with `Map` instance accessible at `request.dnsCache`
 
 #### License
 
