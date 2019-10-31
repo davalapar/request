@@ -111,14 +111,13 @@ const request = (config) => new Promise((resolve, reject) => {
     headers['content-length'] = Buffer.from(body).byteLength;
   }
   let form;
-  let boundary;
   if (config.form !== undefined) {
     if (Array.isArray(config.form) === false) {
       reject(new Error('invalid non-array config.form'));
       return;
     }
     method = 'POST';
-    boundary = crypto.randomBytes(16).toString('hex');
+    const boundary = crypto.randomBytes(32).toString('hex');
     headers['content-type'] = `multipart/form-data; boundary=${boundary}`;
     headers['content-length'] = 0;
     form = new Array(config.form.length);
@@ -443,9 +442,7 @@ const request = (config) => new Promise((resolve, reject) => {
     if (method === 'POST') {
       if (body !== undefined) {
         req.write(body);
-      }
-      if (form !== undefined) {
-        // form.forEach((item) => fs.appendFileSync('./dump.txt', item));
+      } else if (form !== undefined) {
         for (let i = 0, l = form.length; i < l; i += 1) {
           req.write(form[i]);
         }
