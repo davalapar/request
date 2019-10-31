@@ -295,15 +295,13 @@ const request = (config) => new Promise((resolve, reject) => {
           }
         }
         cLengthRawReceived = 0;
-        const cLengthVerifyStream = new stream.Transform({
+        responseStream = response.pipe(new stream.Transform({
           transform(chunk, encoding, callback) {
-            // console.log({ chunk, encoding, callback });
             cLengthRawReceived += chunk.byteLength;
             this.push(chunk);
             callback();
           },
-        });
-        responseStream = response.pipe(cLengthVerifyStream);
+        }));
       } else {
         responseStream = response;
       }
