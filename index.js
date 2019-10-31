@@ -391,8 +391,34 @@ const request = (config) => new Promise((resolve, reject) => {
         if (cLengthRawReceived !== undefined && cLengthRawReceived !== cLength) {
           error = new Error(`RES_CONTENT_LENGTH_MISMATCH_${cLength}_${cLengthRawReceived}`);
         }
-        if (response.statusCode !== 200) {
-          error = new Error(`RES_UNEXPECTED_${response.statusCode}`);
+        switch (response.statusCode) {
+          case 200: // ok
+          case 201: // created
+          case 204: { // no content
+            break;
+          }
+          case 301: // moved permanently
+          case 302: // found
+          case 307: // temporary redirect
+          case 308: { // permanent redirect
+            const cLocation = response.headers.location || '';
+            if (cLocation === '') {
+              error = new Error(`RES_UNEXPECTED_${response.statusCode}_WITHOUT_LOCATION`);
+            } else {
+              req.abort();
+              response.removeAllListeners();
+              response.destroy();
+              request({ ...config, url: cLocation })
+                .then(resolve)
+                .catch(reject);
+              return;
+            }
+            break;
+          }
+          default: {
+            error = new Error(`RES_UNEXPECTED_${response.statusCode}`);
+            break;
+          }
         }
         if (buffer !== undefined) {
           if (json === true && cType.includes('application/json') === true) {
