@@ -11,6 +11,8 @@ const stream = require('stream');
 
 const mime = require('mime-types');
 
+const destCompatibleStatusCodes = [200, 201, 204];
+
 const request = (config) => new Promise((resolve, reject) => {
   if (typeof config !== 'object' || config === null) {
     reject(new Error('invalid non-object config'));
@@ -327,7 +329,7 @@ const request = (config) => new Promise((resolve, reject) => {
         }
       }
 
-      if (response.statusCode === 200 && destination !== undefined) {
+      if (destCompatibleStatusCodes.includes(response.statusCode) === true && destination !== undefined) {
         const dir = path.dirname(destination);
         if (fs.existsSync(dir) === false) {
           fs.mkdirSync(dir, { recursive: true });
