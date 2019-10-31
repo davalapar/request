@@ -93,6 +93,7 @@ const request = require('@davalapar/request');
 - request `destination` parameter
   - file destination path
   - creates parent directories
+  - only works with valid `2XX` responses
   - incompatible with: `text`, `json`
 - request `timeout` parameter
   - request timeout in ms
@@ -106,9 +107,9 @@ const request = require('@davalapar/request');
   - valid 3XX responses: `301`, `302`, `307`, `308`
   - for 3XX responses: verifies `location` if exists, then follows it
   - verifies `content-length` if exists, for both compressed & non-compressed responses
+  - returns `Buffer` if `text` & `json` parameter not set
   - rejects with `error` on response data `json` parsing error
   - rejects with `error` on valid responses, with response data as `error.data`
-  - if `text` & `json` parameter not set, returns `Buffer`
 
 #### License
 
