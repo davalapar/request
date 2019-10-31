@@ -388,9 +388,8 @@ const request = (config) => new Promise((resolve, reject) => {
         }
         let data;
         let error;
-        if (cLengthRawReceived !== cLength) {
+        if (cLengthRawReceived !== undefined && cLengthRawReceived !== cLength) {
           error = new Error(`RES_CONTENT_LENGTH_MISMATCH_${cLength}_${cLengthRawReceived}`);
-          return;
         }
         if (response.statusCode !== 200) {
           error = new Error(`RES_UNEXPECTED_${response.statusCode}`);
