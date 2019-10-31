@@ -218,7 +218,7 @@ const request = (config) => new Promise((resolve, reject) => {
     }
     timeout = config.timeout;
   }
-  let maxSize = Infinity;
+  let maxSize;
   if (config.maxSize !== undefined) {
     if (typeof config.maxSize !== 'number') {
       reject(new Error('invalid non-number config.maxSize'));
@@ -269,6 +269,9 @@ const request = (config) => new Promise((resolve, reject) => {
       port: url.port,
     },
     (response) => {
+      // console.log(response.statusCode);
+      // console.log(response.headers);
+
       if (timeout !== undefined) {
         clearTimeout(timeoutObject);
         timeoutObject = undefined;
@@ -277,12 +280,22 @@ const request = (config) => new Promise((resolve, reject) => {
       const cEncoding = response.headers['content-encoding'] || '';
       const cLength = Number(response.headers['content-length']) || Infinity;
 
-      const cLengthFinite = Number.isFinite(cLength);
+      let responseStream;
+
       let cLengthRawReceived;
-      let cLengthVerifyStream;
-      if (cLengthFinite === true) {
+
+      if (Number.isFinite(cLength) === true) {
+        if (maxSize !== undefined) {
+          if (cLength > maxSize) {
+            req.abort();
+            response.removeAllListeners();
+            response.destroy();
+            reject(new Error(`RES_MAXSIZE_EXCEEDED_${maxSize}_BYTES`));
+            return;
+          }
+        }
         cLengthRawReceived = 0;
-        cLengthVerifyStream = new stream.Transform({
+        const cLengthVerifyStream = new stream.Transform({
           transform(chunk, encoding, callback) {
             // console.log({ chunk, encoding, callback });
             cLengthRawReceived += chunk.byteLength;
@@ -290,22 +303,6 @@ const request = (config) => new Promise((resolve, reject) => {
             callback();
           },
         });
-      }
-      if (cLengthFinite === true && Number.isFinite(maxSize) === true) {
-        if (cLength > 1) {
-          req.abort();
-          response.removeAllListeners();
-          response.destroy();
-          reject(new Error(`RES_MAXSIZE_EXCEEDED_${maxSize}_BYTES`));
-          return;
-        }
-      }
-
-      // console.log(response.statusCode);
-      // console.log(response.headers);
-
-      let responseStream;
-      if (cLengthFinite === true) {
         responseStream = response.pipe(cLengthVerifyStream);
       } else {
         responseStream = response;
