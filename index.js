@@ -276,17 +276,17 @@ const request = (config) => new Promise((resolve, reject) => {
         clearTimeout(timeoutObject);
         timeoutObject = undefined;
       }
-      const cType = response.headers['content-type'] || '';
-      const cEncoding = response.headers['content-encoding'] || '';
-      const cLength = Number(response.headers['content-length']) || Infinity;
+      const hContentType = response.headers['content-type'] || '';
+      const hContentEncoding = response.headers['content-encoding'] || '';
+      const hContentLength = Number(response.headers['content-length']) || Infinity;
 
       let responseStream;
 
-      let cLengthRawReceived;
+      let rawContentLengthReceived;
 
-      if (Number.isFinite(cLength) === true) {
+      if (Number.isFinite(hContentLength) === true) {
         if (maxSize !== undefined) {
-          if (cLength > maxSize) {
+          if (hContentLength > maxSize) {
             req.abort();
             response.removeAllListeners();
             response.destroy();
@@ -294,10 +294,10 @@ const request = (config) => new Promise((resolve, reject) => {
             return;
           }
         }
-        cLengthRawReceived = 0;
+        rawContentLengthReceived = 0;
         responseStream = response.pipe(new stream.Transform({
           transform(chunk, encoding, callback) {
-            cLengthRawReceived += chunk.byteLength;
+            rawContentLengthReceived += chunk.byteLength;
             this.push(chunk);
             callback();
           },
@@ -306,7 +306,7 @@ const request = (config) => new Promise((resolve, reject) => {
         responseStream = response;
       }
       if (compression === true) {
-        switch (cEncoding) {
+        switch (hContentEncoding) {
           case 'br': {
             responseStream = responseStream.pipe(zlib.createBrotliDecompress());
             break;
@@ -388,8 +388,8 @@ const request = (config) => new Promise((resolve, reject) => {
         }
         let data;
         let error;
-        if (cLengthRawReceived !== undefined && cLengthRawReceived !== cLength) {
-          error = new Error(`RES_CONTENT_LENGTH_MISMATCH_${cLength}_${cLengthRawReceived}`);
+        if (rawContentLengthReceived !== undefined && rawContentLengthReceived !== hContentLength) {
+          error = new Error(`RES_CONTENT_LENGTH_MISMATCH_${hContentLength}_${rawContentLengthReceived}`);
         }
         switch (response.statusCode) {
           case 200: // ok
@@ -401,14 +401,14 @@ const request = (config) => new Promise((resolve, reject) => {
           case 302: // found
           case 307: // temporary redirect
           case 308: { // permanent redirect
-            const cLocation = response.headers.location || '';
-            if (cLocation === '') {
+            const hLocation = response.headers.location || '';
+            if (hLocation === '') {
               error = new Error(`RES_UNEXPECTED_${response.statusCode}_WITHOUT_LOCATION`);
             } else {
               req.abort();
               response.removeAllListeners();
               response.destroy();
-              request({ ...config, url: cLocation })
+              request({ ...config, url: hLocation })
                 .then(resolve)
                 .catch(reject);
               return;
@@ -421,13 +421,13 @@ const request = (config) => new Promise((resolve, reject) => {
           }
         }
         if (buffer !== undefined) {
-          if (json === true && cType.includes('application/json') === true) {
+          if (json === true && hContentType.includes('application/json') === true) {
             try {
               data = JSON.parse(buffer.toString('utf8'));
             } catch (e) {
               error = e;
             }
-          } else if (text === true && cType.includes('text/') === true) {
+          } else if (text === true && hContentType.includes('text/') === true) {
             try {
               data = buffer.toString('utf8');
             } catch (e) {
