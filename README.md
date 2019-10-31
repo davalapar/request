@@ -99,13 +99,14 @@ const request = require('@davalapar/request');
 - request `maxSize` parameter
   - response max size in bytes
 - request `compression` parameter
-  - sets `accept-encoding: 'br, gzip, deflate`
+  - sets `accept-encoding: br, gzip, deflate`
   - accepts `content-encoding: br/gzip/deflate`
-- throws `error` on non-200 responses
-- non-200 response data as `error.data`
-- throws `error` on response data parsing error
-- if `text` & `json` parameter not set, returns `Buffer`
-- `content-length` verification for compressed & non-compressed response
+- built-ins
+  - rejects with `error` on response data `json` parsing error
+  - rejects with `error` on non-200 responses
+  - non-200 response data as `error.data`
+  - if `text` & `json` parameter not set, returns `Buffer`
+  - verification of `content-length` if exists, for both compressed & non-compressed responses
 
 #### License
 
