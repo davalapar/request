@@ -277,7 +277,22 @@ const request = (config) => new Promise((resolve, reject) => {
       const cType = response.headers['content-type'] || '';
       const cEncoding = response.headers['content-encoding'] || '';
       const cLength = Number(response.headers['content-length']) || Infinity;
-      if (Number.isFinite(cLength) === true && Number.isFinite(maxSize) === true) {
+
+      const cLengthFinite = Number.isFinite(cLength);
+      let cLengthRawReceived;
+      let cLengthVerifyStream;
+      if (cLengthFinite === true) {
+        cLengthRawReceived = 0;
+        cLengthVerifyStream = new stream.Transform({
+          transform(chunk, encoding, callback) {
+            // console.log({ chunk, encoding, callback });
+            cLengthRawReceived += chunk.byteLength;
+            this.push(chunk);
+            callback();
+          },
+        });
+      }
+      if (cLengthFinite === true && Number.isFinite(maxSize) === true) {
         if (cLength > 1) {
           req.abort();
           response.removeAllListeners();
@@ -286,8 +301,36 @@ const request = (config) => new Promise((resolve, reject) => {
           return;
         }
       }
+
       // console.log(response.statusCode);
       // console.log(response.headers);
+
+      let responseStream;
+      if (cLengthFinite === true) {
+        responseStream = response.pipe(cLengthVerifyStream);
+      } else {
+        responseStream = response;
+      }
+      if (compression === true) {
+        switch (cEncoding) {
+          case 'br': {
+            responseStream = responseStream.pipe(zlib.createBrotliDecompress());
+            break;
+          }
+          case 'gzip': {
+            responseStream = responseStream.pipe(zlib.createGunzip());
+            break;
+          }
+          case 'deflate': {
+            responseStream = responseStream.pipe(zlib.createInflate());
+            break;
+          }
+          default: {
+            break;
+          }
+        }
+      }
+
       if (response.statusCode === 200 && destination !== undefined) {
         const dir = path.dirname(destination);
         if (fs.existsSync(dir) === false) {
@@ -309,28 +352,7 @@ const request = (config) => new Promise((resolve, reject) => {
             reject(new Error(`RES_TIMEOUT_${timeout}_MS`));
           }, timeout);
         }
-        if (compression === true) {
-          switch (cEncoding) {
-            case 'br': {
-              response.pipe(zlib.createBrotliDecompress()).pipe(fws);
-              break;
-            }
-            case 'gzip': {
-              response.pipe(zlib.createGunzip()).pipe(fws);
-              break;
-            }
-            case 'deflate': {
-              response.pipe(zlib.createInflate()).pipe(fws);
-              break;
-            }
-            default: {
-              response.pipe(fws);
-              break;
-            }
-          }
-        } else {
-          response.pipe(fws);
-        }
+        responseStream.pipe(fws);
         fws.on('error', (e) => {
           if (timeout !== undefined) {
             clearTimeout(timeoutObject);
@@ -362,46 +384,6 @@ const request = (config) => new Promise((resolve, reject) => {
         }, timeout);
       }
 
-      const cLengthFinite = Number.isFinite(cLength);
-      let cLengthRawReceived;
-      let cLengthVerifyStream;
-      if (cLengthFinite === true) {
-        cLengthRawReceived = 0;
-        cLengthVerifyStream = new stream.Transform({
-          transform(chunk, encoding, callback) {
-            // console.log({ chunk, encoding, callback });
-            cLengthRawReceived += chunk.byteLength;
-            this.push(chunk);
-            callback();
-          },
-        });
-      }
-
-      let responseStream;
-      if (cLengthFinite === true) {
-        responseStream = response.pipe(cLengthVerifyStream);
-      } else {
-        responseStream = response;
-      }
-      if (compression === true) {
-        switch (cEncoding) {
-          case 'br': {
-            responseStream = responseStream.pipe(zlib.createBrotliDecompress());
-            break;
-          }
-          case 'gzip': {
-            responseStream = responseStream.pipe(zlib.createGunzip());
-            break;
-          }
-          case 'deflate': {
-            responseStream = responseStream.pipe(zlib.createInflate());
-            break;
-          }
-          default: {
-            break;
-          }
-        }
-      }
       let buffer;
       responseStream.on('data', (chunk) => {
         buffer = buffer === undefined ? chunk : Buffer.concat([buffer, chunk]);
