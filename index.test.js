@@ -2,6 +2,7 @@
 const fs = require('fs');
 const request = require('./index');
 
+// process.exit();
 (async () => {
   /**
    * - if path is specified, request returns undefined.
@@ -52,13 +53,20 @@ const request = require('./index');
 
     // url: 'https://en.wikipedia.org/wiki/Content_negotiation',
 
-    url: 'https://httpstat.us/500',
+    // url: 'https://httpstat.us/500',
 
-    timeout: 10000,
+    url: 'https://en.wikipedia.org/wiki/Content_negotiation',
+    // text: true,
+    compression: true,
+
+    // timeout: 10000,
     // maxSize: 1000,
   })
     .then((result) => {
       console.log({ result });
+      if (Buffer.isBuffer(result) === true) {
+        console.log(result.byteLength);
+      }
       // console.log(JSON.stringify(result, null, 2));
     })
     .catch((error) => {

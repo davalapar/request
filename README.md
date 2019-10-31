@@ -105,6 +105,7 @@ const request = require('@davalapar/request');
 - non-200 response data as `error.data`
 - throws `error` on response data parsing error
 - if `text` & `json` parameter not set, returns `Buffer`
+- `content-length` verification for compressed & non-compressed response
 
 #### License
 

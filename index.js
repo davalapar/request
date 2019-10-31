@@ -7,6 +7,7 @@ const https = require('https');
 const qs = require('querystring');
 const crypto = require('crypto');
 const zlib = require('zlib');
+const stream = require('stream');
 
 const mime = require('mime-types');
 
@@ -360,39 +361,61 @@ const request = (config) => new Promise((resolve, reject) => {
           reject(new Error(`RES_TIMEOUT_${timeout}_MS`));
         }, timeout);
       }
-      let stream;
+
+      const cLengthFinite = Number.isFinite(cLength);
+      let cLengthRawReceived;
+      let cLengthVerifyStream;
+      if (cLengthFinite === true) {
+        cLengthRawReceived = 0;
+        cLengthVerifyStream = new stream.Transform({
+          transform(chunk, encoding, callback) {
+            // console.log({ chunk, encoding, callback });
+            cLengthRawReceived += chunk.byteLength;
+            this.push(chunk);
+            callback();
+          },
+        });
+      }
+
+      let responseStream;
+      if (cLengthFinite === true) {
+        responseStream = response.pipe(cLengthVerifyStream);
+      } else {
+        responseStream = response;
+      }
       if (compression === true) {
         switch (cEncoding) {
           case 'br': {
-            stream = response.pipe(zlib.createBrotliDecompress());
+            responseStream = responseStream.pipe(zlib.createBrotliDecompress());
             break;
           }
           case 'gzip': {
-            stream = response.pipe(zlib.createGunzip());
+            responseStream = responseStream.pipe(zlib.createGunzip());
             break;
           }
           case 'deflate': {
-            stream = response.pipe(zlib.createInflate());
+            responseStream = responseStream.pipe(zlib.createInflate());
             break;
           }
           default: {
-            stream = response;
             break;
           }
         }
-      } else {
-        stream = response;
       }
       let buffer;
-      stream.on('data', (chunk) => {
+      responseStream.on('data', (chunk) => {
         buffer = buffer === undefined ? chunk : Buffer.concat([buffer, chunk]);
       });
-      stream.on('end', () => {
+      responseStream.on('end', () => {
         if (timeout !== undefined) {
           clearTimeout(timeoutObject);
         }
         let data;
         let error;
+        if (cLengthRawReceived !== cLength) {
+          error = new Error(`RES_CONTENT_LENGTH_MISMATCH_${cLength}_${cLengthRawReceived}`);
+          return;
+        }
         if (response.statusCode !== 200) {
           error = new Error(`RES_UNEXPECTED_${response.statusCode}`);
         }
@@ -409,6 +432,8 @@ const request = (config) => new Promise((resolve, reject) => {
             } catch (e) {
               error = e;
             }
+          } else {
+            data = buffer;
           }
         }
         if (error === undefined) {
