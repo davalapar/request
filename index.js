@@ -199,6 +199,7 @@ const request = (config) => new Promise((resolve, reject) => {
     headers['accept-encoding'] = 'br, gzip, deflate';
   }
   let timeout;
+  let timeoutStart;
   if (config.timeout !== undefined) {
     if (typeof config.timeout !== 'number') {
       reject(new Error('invalid non-number config.timeout'));
@@ -217,6 +218,7 @@ const request = (config) => new Promise((resolve, reject) => {
       return;
     }
     timeout = config.timeout;
+    timeoutStart = Date.now();
   }
   let maxSize;
   if (config.maxSize !== undefined) {
@@ -344,7 +346,7 @@ const request = (config) => new Promise((resolve, reject) => {
               fs.unlinkSync(destination);
             }
             reject(new Error(`RES_TIMEOUT_${timeout}_MS`));
-          }, timeout);
+          }, timeout - (Date.now() - timeoutStart));
         }
         responseStream.pipe(fws);
         fws.on('error', (e) => {
@@ -370,12 +372,11 @@ const request = (config) => new Promise((resolve, reject) => {
       }
       if (timeout !== undefined) {
         timeoutObject = setTimeout(() => {
-          // console.log('response :: timeout');
           req.abort();
           response.removeAllListeners();
           response.destroy();
           reject(new Error(`RES_TIMEOUT_${timeout}_MS`));
-        }, timeout);
+        }, timeout - (Date.now() - timeoutStart));
       }
 
       let buffer;
@@ -450,7 +451,7 @@ const request = (config) => new Promise((resolve, reject) => {
     timeoutObject = setTimeout(() => {
       req.abort();
       reject(new Error(`REQ_TIMEOUT_${timeout}_MS`));
-    }, timeout);
+    }, timeout - (Date.now() - timeoutStart));
   }
   req.on('error', (e) => {
     if (timeout !== undefined) {

@@ -105,10 +105,10 @@ const request = require('@davalapar/request');
   - valid 2XX responses: `200`, `201`, `204`
   - valid 3XX responses: `301`, `302`, `307`, `308`
   - for 3XX responses: verifies `location` if exists, then follows it
+  - verifies `content-length` if exists, for both compressed & non-compressed responses
   - rejects with `error` on response data `json` parsing error
   - rejects with `error` on valid responses, with response data as `error.data`
   - if `text` & `json` parameter not set, returns `Buffer`
-  - verifies `content-length` if exists, for both compressed & non-compressed responses
 
 #### License
 

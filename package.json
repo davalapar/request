@@ -1,6 +1,6 @@
 {
   "name": "@davalapar/request",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "server-side requests made ez",
   "main": "index.js",
   "repository": "git@github.com:davalapar/request.git",
