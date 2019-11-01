@@ -14,6 +14,45 @@ const mime = require('mime-types');
 
 const destCompatibleStatusCodes = [200, 201, 204];
 
+const validateObjectForJSON = (value) => {
+  switch (typeof value) {
+    case 'string':
+    case 'boolean':
+    case 'undefined': {
+      return true;
+    }
+    case 'number': {
+      if (Number.isNaN(value) === true || Number.isFinite(value) === false) {
+        return false;
+      }
+      return true;
+    }
+    case 'object': {
+      if (value === null) {
+        return true;
+      }
+      if (Array.isArray(value) === true) {
+        for (let i = 0, l = value.length; i < l; i += 1) {
+          if (validateObjectForJSON(value[i]) === false) {
+            return false;
+          }
+        }
+        return true;
+      }
+      const keys = Object.keys(value);
+      for (let i = 0, l = keys.length; i < l; i += 1) {
+        if (validateObjectForJSON(value[keys[i]]) === false) {
+          return false;
+        }
+      }
+      return true;
+    }
+    default: {
+      return false;
+    }
+  }
+};
+
 const dnsCache = new Map();
 
 const request = (config) => new Promise((resolve, reject) => {
@@ -108,6 +147,10 @@ const request = (config) => new Promise((resolve, reject) => {
       reject(new Error('invalid non-object config.body'));
       return;
     }
+    if (validateObjectForJSON(config.body) === false) {
+      reject(new Error('invalid config.body value, validateObjectForJSON'));
+      return;
+    }
     method = 'POST';
     body = JSON.stringify(config.body);
     json = true;
@@ -120,6 +163,27 @@ const request = (config) => new Promise((resolve, reject) => {
     if (Array.isArray(config.form) === false) {
       reject(new Error('invalid non-array config.form'));
       return;
+    }
+    for (let i = 0, l = config.form.length; i < l; i += 1) {
+      const item = config.form[i];
+      if (typeof item.name !== 'string' || item.name === '') {
+        reject(new Error(`invalid non-string/empty-string config.form[${i}].name`));
+        return;
+      }
+      if (item !== undefined && (typeof item.filename !== 'string' || item.filename === '')) {
+        reject(new Error(`invalid defined non-string/empty-string config.form[${i}].filename`));
+        return;
+      }
+      if (typeof item.data !== 'string' && Buffer.isBuffer(item.data) === false) {
+        if (item.filename !== undefined) {
+          reject(new Error(`invalid defined filename with non-string & non-buffer config.form[${i}].data`));
+          return;
+        }
+        if (validateObjectForJSON(item.data) === false) {
+          reject(new Error(`invalid config.form[${i}].data, validateObjectForJSON`));
+          return;
+        }
+      }
     }
     method = 'POST';
     const boundary = crypto.randomBytes(32).toString('hex');
@@ -137,61 +201,60 @@ const request = (config) => new Promise((resolve, reject) => {
       data += `--${boundary}`;
 
       // content disposition:
-      if (item.name === undefined || typeof item.name !== 'string' || item.name === '') {
-        reject(new Error(`invalid form[${i}].name`));
-        return;
-      }
       data += `\r\ncontent-disposition: form-data; name="${item.name}"`;
-      if (item.filename !== undefined) {
-        if (typeof item.filename !== 'string' || item.filename === '') {
-          reject(new Error(`invalid form[${i}].filename`));
-          return;
-        }
-        data += `; filename="${item.filename}"`;
-      } else if (Buffer.isBuffer(item.data) === true) {
-        data += `; filename="${item.name}"`;
-      }
 
-      // content type:
+      // string, buffer, with filename
       if (item.filename !== undefined) {
-        const type = mime.lookup(item.filename);
-        if (type !== false) {
-          data += `\r\ncontent-type: ${type}`;
+        data += `; filename="${item.filename}"`;
+        if (typeof item.data === 'string' || Buffer.isBuffer(item.data) === true) {
+          const type = mime.lookup(item.filename);
+          if (type !== false) {
+            data += `\r\ncontent-type: ${type}`;
+          } else if (Buffer.isBuffer(item.data) === true) {
+            data += '\r\ncontent-type: application/octet-stream';
+          }
         }
+
+      // application/octet-stream compatible data:
+      // buffers
       } else if (Buffer.isBuffer(item.data) === true) {
         data += '\r\ncontent-type: application/octet-stream';
+
+      // application/json compatible data:
+      // number, boolean, undefined, null, plain array, plain objects
+      } else if (typeof item.data !== 'string') {
+        data += '\r\ncontent-type: application/json';
       }
 
       // data:
-      data += '\r\n';
-      if (item.data === undefined) {
-        reject(new Error(`invalid undefined form[${i}].data`));
-        return;
+      let buffer;
+
+      // strings
+      if (typeof item.data === 'string') {
+        if (i === config.form.length - 1) {
+          buffer = Buffer.from(`${data}\r\n\r\n${item.data}\r\n--${boundary}--`);
+        } else {
+          buffer = Buffer.from(`${data}\r\n\r\n${item.data}`);
+        }
+
+      // buffers
+      } else if (Buffer.isBuffer(item.data) === true) {
+        if (i === config.form.length - 1) {
+          buffer = Buffer.concat([Buffer.from(data), `\r\n\r\n${item.data}`, Buffer.from(`\r\n--${boundary}--`)]);
+        } else {
+          buffer = Buffer.concat([Buffer.from(data), `\r\n\r\n${item.data}`]);
+        }
+
+      // non-NaN finite numbers, booleans
+      // undefined, null, plain arrays, plain objects
+      } else if (i === config.form.length - 1) {
+        buffer = Buffer.from(`${data}\r\n\r\n${JSON.stringify(item.data)}\r\n--${boundary}--`);
+      } else {
+        buffer = Buffer.from(`${data}\r\n\r\n${JSON.stringify(item.data)}`);
       }
 
-      if (typeof item.data === 'string') {
-        data += `\r\n${item.data}`;
-        if (i === config.form.length - 1) {
-          data += `\r\n--${boundary}--`;
-        }
-        const buffer = Buffer.from(data);
-        headers['content-length'] += buffer.byteLength;
-        form[i] = buffer;
-        continue;
-      }
-      if (Buffer.isBuffer(item.data) === true) {
-        data += '\r\n';
-        const buffer = Buffer.concat([
-          Buffer.from(data),
-          item.data,
-          Buffer.from(`\r\n--${boundary}--`),
-        ]);
-        headers['content-length'] += buffer.byteLength;
-        form[i] = buffer;
-        continue;
-      }
-      reject(new Error(`invalid non-string non-buffer form[${i}].data`));
-      return;
+      headers['content-length'] += buffer.byteLength;
+      form[i] = buffer;
     }
   }
   let compression;

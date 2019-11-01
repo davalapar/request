@@ -33,20 +33,21 @@ const request = require('@davalapar/request');
     // optional Boolean
     compression: true,
 
-    // optional Object
+    // optional Object with JSON-compatible values:
+    // non-NaN finite numbers, booleans, undefined, null, plain arrays, plain objects
     body: {},
 
     // optional Array
     form: [
       {
-
         // required String
         name: 'photo',
 
         // optional String
         filename: 'photo.jpg',
 
-        // required String or Buffer
+        // required String or Buffer or JSON-compatible values:
+        // non-NaN finite numbers, booleans, undefined, null, plain arrays, plain objects
         data: '',
       }
     ],
