@@ -60,6 +60,14 @@ const request = require('@davalapar/request');
 
     // optional Number
     maxSize: 1000,
+
+    // optional Function
+    onProgress: (chunkSize, rContentLength, hContentLength) => {
+      console.log('received:', chunkSize);
+      console.log('total received:', rContentLength);
+      console.log('total expected:', hContentLength);
+      console.log('progress:', ((rContentLength / hContentLength) * 100).toFixed(2), ' %');
+    },
   });
 })();
 ```

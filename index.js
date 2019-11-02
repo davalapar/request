@@ -90,6 +90,14 @@ const request = (config) => new Promise((resolve, reject) => {
     }
     query = qs.stringify(config.query);
   }
+  let onProgress;
+  if (config.onProgress !== undefined) {
+    if (typeof config.onProgress !== 'function') {
+      reject(new Error('invalid non-function config.onProgress'));
+      return;
+    }
+    onProgress = config.onProgress;
+  }
   let destination;
   if (config.destination !== undefined) {
     if (typeof config.destination !== 'string') {
@@ -416,6 +424,9 @@ const request = (config) => new Promise((resolve, reject) => {
         responseStream = response.pipe(new stream.Transform({
           transform(chunk, encoding, callback) {
             rawContentLengthReceived += chunk.byteLength;
+            if (onProgress !== undefined) {
+              onProgress(chunk.byteLength, rawContentLengthReceived, hContentLength);
+            }
             this.push(chunk);
             callback();
           },
