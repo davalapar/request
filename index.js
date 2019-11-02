@@ -408,7 +408,7 @@ const request = (config) => new Promise((resolve, reject) => {
 
       let responseStream;
 
-      let rawContentLengthReceived;
+      let rContentLength; // received raw content length
 
       if (Number.isFinite(hContentLength) === true) {
         if (maxSize !== undefined) {
@@ -420,12 +420,12 @@ const request = (config) => new Promise((resolve, reject) => {
             return;
           }
         }
-        rawContentLengthReceived = 0;
+        rContentLength = 0;
         responseStream = response.pipe(new stream.Transform({
           transform(chunk, encoding, callback) {
-            rawContentLengthReceived += chunk.byteLength;
+            rContentLength += chunk.byteLength;
             if (onProgress !== undefined) {
-              onProgress(chunk.byteLength, rawContentLengthReceived, hContentLength);
+              onProgress(chunk.byteLength, rContentLength, hContentLength);
             }
             this.push(chunk);
             callback();
@@ -516,8 +516,8 @@ const request = (config) => new Promise((resolve, reject) => {
         }
         let data;
         let error;
-        if (rawContentLengthReceived !== undefined && rawContentLengthReceived !== hContentLength) {
-          error = new Error(`RES_CONTENT_LENGTH_MISMATCH_${hContentLength}_${rawContentLengthReceived}`);
+        if (rContentLength !== undefined && rContentLength !== hContentLength) {
+          error = new Error(`RES_CONTENT_LENGTH_MISMATCH_${hContentLength}_${rContentLength}`);
         }
         switch (response.statusCode) {
           case 200: // ok
