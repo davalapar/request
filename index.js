@@ -178,7 +178,7 @@ const request = (config) => new Promise((resolve, reject) => {
         reject(new Error(`invalid non-string/empty-string config.form[${i}].name`));
         return;
       }
-      if (item !== undefined && (typeof item.filename !== 'string' || item.filename === '')) {
+      if (item.filename !== undefined && (typeof item.filename !== 'string' || item.filename === '')) {
         reject(new Error(`invalid defined non-string/empty-string config.form[${i}].filename`));
         return;
       }
@@ -248,9 +248,9 @@ const request = (config) => new Promise((resolve, reject) => {
       // buffers
       } else if (Buffer.isBuffer(item.data) === true) {
         if (i === config.form.length - 1) {
-          buffer = Buffer.concat([Buffer.from(data), `\r\n\r\n${item.data}`, Buffer.from(`\r\n--${boundary}--`)]);
+          buffer = Buffer.concat([Buffer.from(`${data}\r\n\r\n`), item.data, Buffer.from(`\r\n--${boundary}--`)]);
         } else {
-          buffer = Buffer.concat([Buffer.from(data), `\r\n\r\n${item.data}`]);
+          buffer = Buffer.concat([Buffer.from(`${data}\r\n\r\n`), item.data]);
         }
 
       // non-NaN finite numbers, booleans
