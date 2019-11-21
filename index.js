@@ -69,9 +69,9 @@ const request = (config) => new Promise((resolve, reject) => {
     reject(new Error('invalid non-string config.url'));
     return;
   }
-  if (config.url.includes('https://') === true) {
+  if (config.url.substring(0, 8) === 'https://') {
     agent = https;
-  } else if (config.url.includes('http://') === true) {
+  } else if (config.url.substring(0, 7) === 'http://') {
     agent = http;
   } else {
     reject(new Error('invalid non-http non-https protocols'));
