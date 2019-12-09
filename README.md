@@ -15,8 +15,11 @@ const request = require('@davalapar/request');
 (async () => {
   const response = await request({
 
-    // optiona String
+    // optional String
     userAgent: '',
+  
+    // optional String
+    referer: '',
 
     // required String
     url: 'https://...',
@@ -74,41 +77,43 @@ const request = require('@davalapar/request');
 
 #### Highlights
 
-- request `userAgent` parameter
+- `userAgent` parameter
   - sets `user-agent: userAgent`
-- request `query` parameter
+- `referer` or `referrer` parameter
+  - sets `referrer: referer || referrer`
+- `query` parameter
   - for search / query parameters such as `?foo=bar`
   - compatible with: `body`, `form`
-- request `text` parameter
+- `text` parameter
   - sets `accept: text/*`
   - parse response into `String` if `content-type: text/*`
   - incompatible with: `json`, `destination`
-- request `json` parameter
+- `json` parameter
   - sets `accept: application/json`
   - parse response into `Object` if `content-type: application/json`
   - incompatible with: `text`, `destination`
-- request `body` parameter
+- `body` parameter
   - sets `method: POST`
   - sets `accept: application/json`
   - sets `content-type: application/json`
   - accepts non-ascii utf8 strings, emojis
   - incompatible with: `form`
   - uses `POST` method
-- request `form` parameter
+- `form` parameter
   - sets `method: POST`
   - sets `content-type: multipart/form-data`
   - accepts utf8 strings,  binary data
   - incompatible with: `body`
-- request `destination` parameter
+- `destination` parameter
   - file destination path
   - creates parent directories
   - only works with valid `2XX` responses
   - incompatible with: `text`, `json`
-- request `timeout` parameter
+- `timeout` parameter
   - request timeout in ms
-- request `maxSize` parameter
+- `maxSize` parameter
   - response max size in bytes
-- request `compression` parameter
+- `compression` parameter
   - sets `accept-encoding: br, gzip, deflate`
   - accepts `content-encoding: br/gzip/deflate`
 - built-ins

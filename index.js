@@ -122,6 +122,20 @@ const request = (config) => new Promise((resolve, reject) => {
     }
     headers['user-agent'] = config.userAgent;
   }
+  if (config.referer !== undefined) {
+    if (typeof config.referer !== 'string' || config.referer === '') {
+      reject(new Error('invalid non-string / empty-string config.referer'));
+      return;
+    }
+    headers.referer = config.referer;
+  }
+  if (config.referrer !== undefined) {
+    if (typeof config.referrer !== 'string' || config.referrer === '') {
+      reject(new Error('invalid non-string / empty-string config.referrer'));
+      return;
+    }
+    headers.referer = config.referrer;
+  }
   if (config.text !== undefined && config.json !== undefined) {
     reject(new Error('invalid non-undefined config.text and non-undefined config.json'));
     return;
