@@ -368,16 +368,15 @@ const request = (config) => new Promise((resolve, reject) => {
           }
           dnsCache.delete(hostname);
         }
-        let done = 0;
         let resolved = false;
         dns.resolve4(hostname, { ttl: true }, (error, addresses) => {
-          done += 1;
           if (resolved === false) {
-            if (error !== null && done === 2) {
+            if (error !== null) {
+              resolved = true;
               callback(error);
               return;
             }
-            if (addresses !== undefined) {
+            if (Array.isArray(addresses) === true && typeof addresses[0] === 'object' && addresses[0] !== null) {
               resolved = true;
               const { address, ttl } = addresses[0];
               const ttlInMs = ttl * 1000;
@@ -389,13 +388,13 @@ const request = (config) => new Promise((resolve, reject) => {
           }
         });
         dns.resolve6(hostname, { ttl: true }, (error, addresses) => {
-          done += 1;
           if (resolved === false) {
-            if (error !== null && done === 2) {
+            if (error !== null) {
+              resolved = true;
               callback(error);
               return;
             }
-            if (addresses !== undefined) {
+            if (Array.isArray(addresses) === true && typeof addresses[0] === 'object' && addresses[0] !== null) {
               resolved = true;
               const { address, ttl } = addresses[0];
               const ttlInMs = ttl * 1000;
