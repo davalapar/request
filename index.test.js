@@ -26,7 +26,7 @@ const request = require('./index');
     // url: 'http://i3.ytimg.com/vi/J---aiyznGQ/mqdefault.jpg',
 
     // application/json
-    // url: 'https://jsonplaceholder.typicode.com/todos/1',
+    url: 'https://jsonplaceholder.typicode.com/todos/1',
 
     // text/plain
     // url: 'https://stackoverflow.com/robots.txt',
@@ -55,9 +55,9 @@ const request = require('./index');
 
     // url: 'https://httpstat.us/500',
 
-    url: 'https://en.wikipedia.org/wiki/Content_negotiation',
+    // url: 'https://en.wikipedia.org/wiki/Content_negotiation',
     // text: true,
-    compression: true,
+    // compression: true,
 
     // timeout: 10000,
     // maxSize: 1000,
