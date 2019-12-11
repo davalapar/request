@@ -64,41 +64,31 @@ const lookup = (hostname, options, callback) => {
     }
     dnsCache.delete(hostname);
   }
-  let resolved = false;
-  dns.resolve4(hostname, { ttl: true }, (error, addresses) => {
-    if (resolved === false) {
-      if (error !== null) {
-        resolved = true;
-        callback(error);
-        return;
-      }
-      if (Array.isArray(addresses) === true && typeof addresses[0] === 'object' && addresses[0] !== null) {
-        resolved = true;
-        const { address, ttl } = addresses[0];
-        const ttlInMs = ttl * 1000;
-        const family = 4;
-        const timestamp = Date.now();
-        dnsCache.set(hostname, [address, family, ttlInMs, timestamp]);
-        callback(null, address, family);
-      }
+  dns.resolve4(hostname, { ttl: true }, (error4, addresses4) => {
+    if (error4 !== null) {
+      dns.resolve6(hostname, { ttl: true }, (error6, addresses6) => {
+        if (error6 !== null) {
+          callback(error6);
+          return;
+        }
+        if (Array.isArray(addresses6) === true && typeof addresses6[0] === 'object' && addresses6[0] !== null) {
+          const { address, ttl } = addresses6[0];
+          const ttlInMs = ttl * 1000;
+          const family = 6;
+          const timestamp = Date.now();
+          dnsCache.set(hostname, [address, family, ttlInMs, timestamp]);
+          callback(null, address, family);
+        }
+      });
+      return;
     }
-  });
-  dns.resolve6(hostname, { ttl: true }, (error, addresses) => {
-    if (resolved === false) {
-      if (error !== null) {
-        resolved = true;
-        callback(error);
-        return;
-      }
-      if (Array.isArray(addresses) === true && typeof addresses[0] === 'object' && addresses[0] !== null) {
-        resolved = true;
-        const { address, ttl } = addresses[0];
-        const ttlInMs = ttl * 1000;
-        const family = 6;
-        const timestamp = Date.now();
-        dnsCache.set(hostname, [address, family, ttlInMs, timestamp]);
-        callback(null, address, family);
-      }
+    if (Array.isArray(addresses4) === true && typeof addresses4[0] === 'object' && addresses4[0] !== null) {
+      const { address, ttl } = addresses4[0];
+      const ttlInMs = ttl * 1000;
+      const family = 4;
+      const timestamp = Date.now();
+      dnsCache.set(hostname, [address, family, ttlInMs, timestamp]);
+      callback(null, address, family);
     }
   });
 };
