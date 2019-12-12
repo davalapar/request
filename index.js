@@ -144,6 +144,18 @@ const request = (config) => new Promise((resolve, reject) => {
       destination = config.destination;
     }
     const headers = {};
+    if (config.auth !== undefined) {
+      if (typeof config.auth !== 'string' || config.auth === '') {
+        throw Error('invalid non-string / empty-string config.auth');
+      }
+      headers.authorization = config.auth;
+    }
+    if (config.authorization !== undefined) {
+      if (typeof config.authorization !== 'string' || config.authorization === '') {
+        throw Error('invalid non-string / empty-string config.authorization');
+      }
+      headers.authorization = config.authorization;
+    }
     if (config.userAgent !== undefined) {
       if (typeof config.userAgent !== 'string' || config.userAgent === '') {
         throw Error('invalid non-string / empty-string config.userAgent');

@@ -16,6 +16,9 @@ const request = require('@davalapar/request');
   const response = await request({
 
     // optional String
+    auth: '',
+
+    // optional String
     userAgent: '',
   
     // optional String
@@ -81,6 +84,8 @@ const request = require('@davalapar/request');
   - sets `user-agent: userAgent`
 - `referer` or `referrer` parameter
   - sets `referrer: referer || referrer`
+- `auth` or `authorization` parameter
+  - sets `authorization: auth || authorization`
 - `query` parameter
   - for search / query parameters such as `?foo=bar`
   - compatible with: `body`, `form`
