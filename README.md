@@ -15,6 +15,9 @@ const request = require('@davalapar/request');
 (async () => {
   const response = await request({
 
+    // optional Object
+    headers: {},
+
     // optional String
     auth: '',
 
@@ -80,6 +83,8 @@ const request = require('@davalapar/request');
 
 #### Highlights
 
+- `headers` parameter
+  - sets `headers`
 - `userAgent` parameter
   - sets `user-agent: userAgent`
 - `referer` or `referrer` parameter

@@ -144,6 +144,12 @@ const request = (config) => new Promise((resolve, reject) => {
       destination = config.destination;
     }
     const headers = {};
+    if (config.headers !== undefined) {
+      if (typeof config.headers !== 'object' || config.headers === null) {
+        throw Error('invalid non-object / null config.headers');
+      }
+      Object.assign(headers, config.headers);
+    }
     if (config.auth !== undefined) {
       if (typeof config.auth !== 'string' || config.auth === '') {
         throw Error('invalid non-string / empty-string config.auth');
